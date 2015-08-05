@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Label?>
+<?import ui.DefaultTableTabController?>
+
+<Tab
+  xmlns:fx="http://javafx.com/fxml/1"
+  xmlns="http://javafx.com/javafx/8"
+  fx:controller="ui.DefaultTableTabController"
+  text="新規タブ">
+  <content>
+    <VBox>
+      <HBox>
+        <Button fx:id="add" text="新規"></Button>
+        <Button fx:id="del" text="削除"></Button>
+      </HBox>
+      <TableView fx:id="table">
+        
+      
+      </TableView>
+    </VBox>
+  </content>
+</Tab>
+

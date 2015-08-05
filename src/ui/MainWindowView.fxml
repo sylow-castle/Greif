@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.control.Label?>
+<?import ui.WindowController?>
+
+<VBox
+  xmlns="http://javafx.com/javafx/8"
+  xmlns:fx="http://javafx.com/fxml/1"
+  fx:controller="ui.WindowController"
+  fx:id="root">
+<SplitPane orientation="VERTICAL">
+    <TabPane fx:id="tabsroot">
+      <tabs>
+        <Tab text="メニュー">
+          <VBox>
+            <Button fx:id="OpenFile" text="開く"></Button>
+              <ComboBox fx:id="SchemaList"></ComboBox>
+            <HBox>
+              <Button fx:id="SaveFile" text="保存"></Button>
+              <Button fx:id="Generate" text="グラフ生成"></Button>
+            </HBox>
+            <ComboBox fx:id="ShapeList"></ComboBox>
+            <HBox>
+            </HBox>
+          </VBox>
+        </Tab>
+      </tabs>
+    </TabPane>
+    <ScrollPane>
+      <ImageView fx:id="imView">
+        <image>
+          <Image url="@dotImage.png" />
+        </image>
+      </ImageView>
+    </ScrollPane>
+  </SplitPane>
+</VBox>
