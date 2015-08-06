@@ -1,7 +1,0 @@
-digraph{
-  node[fontname="meiryo"];
-  edge[fontname="meiryo"];
-
-  1 -> 2 -> 3;
-  2 -> 4;
-}
