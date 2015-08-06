@@ -54,12 +54,13 @@ import javafx.stage.FileChooser;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import java.util.Properties;
 
 public class WindowController implements Initializable {
-  private static final String INITIAL_DIR = "D:/temp/";
-  private static final String PNG_FILE_PATH = "D:\\temp\\sample.png";
-  private static final String DOT_FILE_PATH = "D:\\temp\\dotlang.dot";
-  private static final String GRAPHVIXZ_BIN_PATH = "D:\\Program\\Graphviz2.38\\bin\\dot.exe";
+  private static final String INITIAL_DIR = runner.Main.prop.getProperty("InitialDir");
+  private static final String PNG_FILE_PATH = runner.Main.prop.getProperty("ImageFilePath");
+  private static final String DOT_FILE_PATH = runner.Main.prop.getProperty("DOTFilePath");
+  private static final String GRAPHVIXZ_BIN_PATH = runner.Main.prop.getProperty("GraphVizPath") + "dot.exe";
 
   @FXML
   public VBox root;

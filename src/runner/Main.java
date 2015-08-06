@@ -28,6 +28,7 @@ import database.*;
 public class Main extends Application {
   public Connection defaultConnection = null;
   public static Window window;
+  public static final Properties prop = new Properties();
     /**
      * @param args
      */
@@ -36,8 +37,7 @@ public class Main extends Application {
     Tester.test_loadTextFile();
     Tester.test_CreateGraph_2();
     */
-
-
+    loadConfigPropeties();
     launch(args);
   }
 
@@ -46,7 +46,7 @@ public class Main extends Application {
     Class.forName("org.sqlite.JDBC");
     defaultConnection = DbFileLoader.createMemoryDB();
     try {
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("../UI/MainWindowView.fxml"));
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("../ui/MainWindowView.fxml"));
       VBox root = (VBox) loader.load();
       Scene scene = new Scene(root, 640, 480);
       stage.setScene(scene);
@@ -66,8 +66,25 @@ public class Main extends Application {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-
   }
 
 
+  private static void loadConfigPropeties() {
+    InputStream inStream = null;
+    try {
+      inStream = new BufferedInputStream(
+          new FileInputStream("resource/config.properties"));
+      prop.load(inStream);
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        if (inStream != null) {
+          inStream.close();
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 }
