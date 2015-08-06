@@ -17,9 +17,12 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.io.*;
+import java.util.Properties;
 
 import table.*;
 import database.*;
+
 
 
 public class Main extends Application {
@@ -33,6 +36,8 @@ public class Main extends Application {
     Tester.test_loadTextFile();
     Tester.test_CreateGraph_2();
     */
+
+
     launch(args);
   }
 
