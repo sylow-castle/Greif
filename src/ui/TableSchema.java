@@ -3,6 +3,7 @@ package ui;
 import graph.Edge;
 import graph.IdentifiedGraph;
 
+import java.net.URL;
 import java.sql.SQLException;
 
 import coder.DotAttribute;
@@ -129,7 +130,9 @@ public class TableSchema {
   private TableView<DefaultRow> buildTableView(String tableId, SimpleStringTable table) {
     //シーングラフへのTab追加
     try {
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("../ui/DefaultTableTab.fxml"));
+      URL url = ui.view.fxmlRoot.class.getResource("DefaultTableTab.fxml");
+      System.out.println(url.toString());
+      FXMLLoader loader = new FXMLLoader(url);
       Tab tab = loader.<Tab> load();
 
       Map<String, String> tabName = getTabNameMap();

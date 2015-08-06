@@ -13,6 +13,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.VBox;
 
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,7 +42,9 @@ public class Main extends Application {
     Class.forName("org.sqlite.JDBC");
     defaultConnection = DbFileLoader.createMemoryDB();
     try {
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("../UI/MainWindowView.fxml"));
+      URL url = ui.view.fxmlRoot.class.getResource("MainWindowView.fxml");
+      System.out.println(url.toString());
+      FXMLLoader loader = new FXMLLoader(url);
       VBox root = (VBox) loader.load();
       Scene scene = new Scene(root, 640, 480);
       stage.setScene(scene);
