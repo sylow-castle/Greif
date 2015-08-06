@@ -2,7 +2,6 @@ package ui;
 
 import graph.Edge;
 import graph.IdentifiedGraph;
-import graph.Vertex;
 
 import java.sql.SQLException;
 
@@ -11,7 +10,6 @@ import coder.EdgeCoder;
 import coder.GraphCoder;
 import coder.SimpleAttribute;
 import coder.VertexCoder;
-import coder.nodeAttribute.*;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -25,6 +23,7 @@ import java.util.Set;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TabPane;
 import javafx.collections.FXCollections;
@@ -48,9 +47,10 @@ public class TableSchema {
 
   //頂点、辺等のテーブル名をキー
   //テーブルが持つ属性の名前一覧を値としたMap。
-  private ObservableList<String> tables;
-  private Map<String, ObservableList<String>> columnNameMap;
+  private ObservableList<String> tableNames;
+  private Map<String, SimpleStringTable> tables;
   private Map<String, String> columnToAttributeId;
+  private Map<String, TableView<DefaultRow>> tableViews;
 
   //定数
   private static final String DOT_WRITE_PATH = "D:\\temp\\dotlang.dot";
@@ -68,76 +68,109 @@ public class TableSchema {
     try {
       this.filePath = filePath;
       this.schemaView = new TabPane();
-      this.columnNameMap = new HashMap<String, ObservableList<String>>();
+      this.tables = new HashMap<String, SimpleStringTable>();
+      this.tableViews = new HashMap<String, TableView<DefaultRow>>();
+      this.tableNames = FXCollections.<String>observableArrayList();
       this.columnToAttributeId = createDefaultAttributeMap();
-      this.tables = FXCollections.observableArrayList();
 
       //テーブルの追加
       Connection dbFile = DbFileLoader.loadDbFile(filePath);
       Statement fileStatement = dbFile.createStatement();
       ResultSet tables = fileStatement.executeQuery("select name from sqlite_master where type = 'table'");
 
-      //テーブル名（String）から対応するTableViewを得るためのMap及びテーブル名のList
-      Map<String, TableView<DefaultRow>> tableMap = new HashMap<String, TableView<DefaultRow>>();
-      List<String> tableNameList = new ArrayList<String>();
-
       while (tables.next()) {
-        //シーングラフへのTab追加
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("../ui/DefaultTableTab.fxml"));
-        Tab tab = loader.<Tab>load();
-
-        Map<String, String> tabName = getTabNameMap();
-
-
-        //タブの設定
-        String tableId = tables.getString("name");
-        this.tables.add(tableId);
-        tab.setText(tabName.get(tableId));
-        tab.getContent().setId(tableId);
-        schemaView.getTabs().add(tab);
-
-        TableView<DefaultRow> view = (TableView<DefaultRow>) tab.getContent().lookup("#table");
-        tableMap.put(tableId, view);
-        tableNameList.add(tableId);
-
-        DefaultTableTabController controller = loader.<DefaultTableTabController>getController();
-        columnNameMap.put(tableId, FXCollections.<String>observableArrayList());
-        columnNameMap.get(tableId).addListener(controller.<String>getAddColumnListener());
+        String tableName = tables.getString("name");
+        this.tableNames.add(tableName);
       }
 
-      for(String tableName : tableNameList) {
-        //モデルへのデータ設定
+      for(String tableName : this.tableNames) {
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
-
-        //列の設定
-        //あわせて列名のListの作成とColumnの追加
-        int cardOfColumns = values.getMetaData().getColumnCount();
-        for(int i = 0; i < cardOfColumns; i++) {
-          String columnName = values.getMetaData().getColumnName(i+1);
-          columnNameMap.get(tableName).add(columnName);
-        }
-
-        //行の設定
-        while (values.next()){
-          //追加するDataRow用のvalueMapの組み立て
-          ObservableMap<String, StringProperty>  valueMap = FXCollections.<String, StringProperty>observableHashMap();
-          for(String columnName : columnNameMap.get(tableName)) {
-            valueMap.put(columnName, new SimpleStringProperty(values.getString(columnName)));
-          }
-
-          //追加するDataRowの構成
-          DefaultRow row = new DefaultRow();
-          row.setValueMap(valueMap);
-          tableMap.get(tableName).getItems().add(row);
-        }
+        SimpleStringTable table = buildSimpleTable(values);
+        this.tables.put(tableName, table);
+        this.tableViews.put(tableName, buildTableView(tableName, table));
       }
       dbFile.close();
     } catch (SQLException e) {
       this.schemaView = null;
       e.printStackTrace();
-    } catch (IOException e) {
+    }
+  }
+
+  private SimpleStringTable buildSimpleTable(ResultSet tableData) {
+    SimpleStringTable table = new SimpleStringTable();
+
+    try {
+      //列の設定
+      //あわせて列名のListの作成とColumnの追加
+      int cardOfColumns = tableData.getMetaData().getColumnCount();
+      for (int i = 0; i < cardOfColumns; i++) {
+        String columnName = tableData.getMetaData().getColumnName(i + 1);
+        table.addColumn(columnName);
+      }
+
+      //行の設定
+      while (tableData.next()) {
+        Map<String, String> record = new HashMap<String, String>();
+        table.addRecord(record);
+
+        //行の値の組立て
+        for (String columnName : table.getColumns()) {
+          record.put(columnName, tableData.getString(columnName));
+        }
+      }
+    } catch (SQLException e) {
       this.schemaView = null;
       e.printStackTrace();
+    }
+
+    return table;
+  }
+
+  private TableView<DefaultRow> buildTableView(String tableId, SimpleStringTable table) {
+    //シーングラフへのTab追加
+    try {
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("../ui/DefaultTableTab.fxml"));
+      Tab tab = loader.<Tab> load();
+
+      Map<String, String> tabName = getTabNameMap();
+
+      //タブの設定
+      tab.setText(tabName.get(tableId));
+      tab.getContent().setId(tableId);
+      schemaView.getTabs().add(tab);
+
+      @SuppressWarnings("unchecked")
+      TableView<DefaultRow> view = (TableView<DefaultRow>) tab.getContent().lookup("#table");
+      DefaultTableTabController controller = loader.<DefaultTableTabController> getController();
+
+      //列の設定
+      ObservableList<String> columns = FXCollections.<String> observableArrayList();
+      columns.addListener(controller.<String> getAddColumnListener());
+      for (String columnName : table.getColumns()) {
+        columns.add(columnName);
+      }
+
+      //行の設定
+      for (Map<String, String> record : table.getAllRecords()) {
+        DefaultRow row = new DefaultRow();
+        view.getItems().add(row);
+
+        //追加するDataRow用のvalueMapの組み立て
+        ObservableMap<String, StringProperty> valueMap = FXCollections.<String, StringProperty> observableHashMap();
+        row.setValueMap(valueMap);
+
+        //valueMapの組立て
+        for (String columnName : table.getColumns()) {
+          SimpleStringProperty value = new SimpleStringProperty(record.get(columnName));
+          valueMap.put(columnName, value);
+        }
+      }
+
+      return view;
+    } catch (IOException e) {
+      // TODO 自動生成された catch ブロック
+      e.printStackTrace();
+      return null;
     }
   }
 
@@ -153,9 +186,9 @@ public class TableSchema {
     return schemaView;
   }
 
-
   public List<DefaultRow> getVerticesAsList() {
     List<DefaultRow> list = new ArrayList<DefaultRow>();
+    @SuppressWarnings("unchecked")
     TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#vertex").lookup("#table");
     for(DefaultRow row : table.getItems()) {
       list.add(row);
@@ -165,6 +198,7 @@ public class TableSchema {
 
   public List<DefaultRow> getEdgesAsList() {
     List<DefaultRow> list = new ArrayList<DefaultRow>();
+    @SuppressWarnings("unchecked")
     TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#edge").lookup("#table");
     for(DefaultRow row : table.getItems()) {
       list.add(row);
@@ -189,9 +223,6 @@ public class TableSchema {
     IdentifiedGraph<String> baseGraph;
     Map<String, DefaultRow> vertexInfo;
     Map<Edge, DefaultRow> edgeInfo;
-
-    SimpleStringTable vertices = new SimpleStringTable();
-    SimpleStringTable edges = new SimpleStringTable();
 
     baseGraph = new IdentifiedGraph<String>();
     vertexInfo = new HashMap<String, DefaultRow>();
@@ -249,13 +280,6 @@ public class TableSchema {
     new TextFileWriter(DOT_WRITE_PATH).writeFile(GCoder.writeDot());
   }
 
-  public List<String> getColumns(String tableName) {
-    List<String> list = new ArrayList<String>(columnNameMap.get("tableName"));
-    return list;
-  }
-
-
-
   public void save() {
     try {
       Connection dbFile = DbFileLoader.createMemoryDB();
@@ -264,50 +288,35 @@ public class TableSchema {
 
 
       //テーブルの作成
-      Map<String, SimpleStringTable> tables = new HashMap();
-
-      for (String tableName : this.tables) {
-        //翻訳元になるTableView
-        // TODO ここで作るSimpleTableオブジェクトをTableViewの元にしたい
-        TableView<DefaultRow> tableview = (TableView<DefaultRow>) schemaView.lookup("#" + tableName).lookup("#table");
-
+      Map<String, SimpleStringTable> tables = new HashMap<String, SimpleStringTable>();
+      for (String tableName : this.tableNames) {
         //テーブルの作成
-        SimpleStringTable table = new SimpleStringTable();
+        TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
+        SimpleStringTable table = this.tables.get(tableName);
+        table.removeAllRecords();
+        for(DefaultRow row : view.getItems()) {
+          table.addRecord(row.degenerateRow());
+        }
+
         tables.put(tableName, table);
-
-        //列の設定
-        for (String columName : this.columnNameMap.get(table)) {
-          table.addColumn(columName);
-        }
-
-        //行の設定
-        for(DefaultRow row : tableview.getItems()) {
-          Map<String, String> record = new HashMap<String, String>();
-          for(String columnName : table.getColumns()) {
-            record.put(columnName, row.getValueMap().get(columnName).get());
-          }
-
-          table.addRecord(record);
-        }
       }
 
       //create文の作成
-      for (String table : this.tables) {
+      for (String tableName : this.tableNames) {
         //create文作成
         String sql ="";
-        sql = "create table " + table + " ";
+        sql = "create table " + tableName + " ";
 
         List<String> columns = new ArrayList<String>();
-        for (String columName : tables.get(table).getColumns()) {
+        for (String columName : tables.get(tableName).getColumns()) {
           columns.add(columName + " text");
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
         stmt.addBatch(sql);
       }
 
-
       //insert文の作成
-      for (String tableName : this.tables) {
+      for (String tableName : this.tableNames) {
         String sql ="";
 
         SimpleStringTable table = tables.get(tableName);

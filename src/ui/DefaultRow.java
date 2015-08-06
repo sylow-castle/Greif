@@ -35,4 +35,14 @@ public class DefaultRow {
   public void setValueMap(ObservableMap<String, StringProperty> columns){
     this.valueMap.set(columns);
   }
+
+  public Map<String, String> degenerateRow() {
+    Map<String, String> record = new HashMap<String, String>();
+    for(String column : this.valueMap.get().keySet() ) {
+      record.put(column, this.valueMap.get(column).get());
+    }
+
+    return record;
+  }
+
 }

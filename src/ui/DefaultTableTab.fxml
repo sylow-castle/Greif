@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.Label?>
 <?import ui.DefaultTableTabController?>
+<?import table.SimpleStringTable?>
 
 <Tab
   xmlns:fx="http://javafx.com/fxml/1"
@@ -21,8 +22,7 @@
         <Button fx:id="del" text="削除"></Button>
       </HBox>
       <TableView fx:id="table">
-        
-      
+        <SimpleStringTable></SimpleStringTable>
       </TableView>
     </VBox>
   </content>

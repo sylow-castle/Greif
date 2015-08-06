@@ -1,20 +1,26 @@
 package table;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class SimpleStringTable {
-  private SortedSet<String> columns;
-  private List<Map<String, String>> records;
+import ui.DefaultRow;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.util.Builder;
 
+public class SimpleStringTable implements Builder<SimpleStringTable> {
+  private SortedSet<String> columns;
+  private ObservableList<Map<String, String>> records;
 
   public SimpleStringTable() {
-    columns = new TreeSet<String>();
-    records = new ArrayList<Map<String, String>>();
+    this.columns = new TreeSet<String>();
+    this.records = FXCollections.<Map<String, String>>observableArrayList();
   }
 
   public void addColumn(String column) {
@@ -33,8 +39,12 @@ public class SimpleStringTable {
     records.add(record);
   }
 
-  public void removeRecord(Map<String, String> record) {
-    records.remove(record);
+  public void removeRecord(int i) {
+    records.remove(i);
+  }
+
+  public void removeAllRecords() {
+    records = FXCollections.<Map<String, String>>observableArrayList();
   }
 
 
@@ -51,4 +61,13 @@ public class SimpleStringTable {
     return new ArrayList<Map<String, String>>(records);
   }
 
+  public Map<String, String> getRecord(int i) {
+    return records.get(i);
+  }
+
+
+  @Override
+  public SimpleStringTable build() {
+    return this;
+  }
 }

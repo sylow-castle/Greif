@@ -1,9 +1,9 @@
 package ui;
 
-
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import table.SimpleStringTable;
 import ui.DefaultRow;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -12,6 +12,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.SelectionModel;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
 import javafx.scene.control.MultipleSelectionModel;
@@ -32,14 +33,19 @@ public class DefaultTableTabController implements Initializable {
 
   @FXML
   public Button del;
+
+  @FXML
   public ObservableList<DefaultRow> list;
 
   @FXML
   public TableView<DefaultRow> table;
 
+  @FXML
+  public SimpleStringTable modelTable;
+
   public DefaultRow defaultValue;
 
-  public void initialize(URL url, ResourceBundle rb){
+  public void initialize(URL url, ResourceBundle rb) {
     //デフォルト値の設定
     //tableのTableColumnのリストを受けて変化する。
     defaultValue = new DefaultRow();
@@ -49,26 +55,23 @@ public class DefaultTableTabController implements Initializable {
     table.setEditable(true);
     table.setItems(list);
 
-
-
     TableColumn<DefaultRow, String> col = new TableColumn<DefaultRow, String>();
     col.setText("編集");
     table.getColumns().add(col);
 
-    col.setCellFactory(new Callback<TableColumn<DefaultRow, String>,TableCell<DefaultRow, String>>() {
+    col.setCellFactory(new Callback<TableColumn<DefaultRow, String>, TableCell<DefaultRow, String>>() {
       @Override
-      public TableCell<DefaultRow, String> call(TableColumn<DefaultRow, String> e){
+      public TableCell<DefaultRow, String> call(TableColumn<DefaultRow, String> e) {
         ButtonTableCell<DefaultRow, String> cell = new ButtonTableCell<DefaultRow, String>();
         return new ButtonTableCell<DefaultRow, String>();
       }
     });
 
     //Columnの追加・削除時の動作、
-    ListChangeListener<TableColumn<DefaultRow, ?>> listener
-    = new ListChangeListener<TableColumn<DefaultRow, ?>>() {
+    ListChangeListener<TableColumn<DefaultRow, ?>> listener = new ListChangeListener<TableColumn<DefaultRow, ?>>() {
       @Override
       public void onChanged(ListChangeListener.Change<? extends TableColumn<DefaultRow, ?>> e) {
-        for(TableColumn<DefaultRow, ?> column : e.getList()) {
+        for (TableColumn<DefaultRow, ?> column : e.getList()) {
           String columnName = column.getText();
           defaultValue.getValueMap().put(columnName, new SimpleStringProperty(columnName));
         }
@@ -79,16 +82,18 @@ public class DefaultTableTabController implements Initializable {
 
     //ボタンの設定
     EventHandler<ActionEvent> handler;
-    handler = (ActionEvent e) -> {table.getItems().add(new DefaultRow(defaultValue));} ;
+    handler = (ActionEvent e) -> {
+      DefaultRow row = new DefaultRow(defaultValue);
+      table.getItems().add(row);
+    };
     add.setOnAction(handler);
 
-    handler = (ActionEvent e ) -> {
-      MultipleSelectionModel<DefaultRow>  model = table.getSelectionModel();
-      list.removeAll(model.getSelectedItems());
+    handler = (ActionEvent e) -> {
+      int model = table.getSelectionModel().getSelectedIndex();
+      list.remove(model);
     };
     del.setOnAction(handler);
   }
-
 
   public void addColumn(String columnName) {
     TableColumn<DefaultRow, String> addColumn = new TableColumn<DefaultRow, String>();
@@ -103,27 +108,26 @@ public class DefaultTableTabController implements Initializable {
             return p.getValue().getValueMap().get(columnName);
           }
         }
-    );
+        );
     table.getColumns().add(addColumn);
   }
 
-
   public <T> ListChangeListener<T> getAddColumnListener() {
-  ListChangeListener<T> listener = new ListChangeListener<T>() {
-    @Override
-    public void onChanged(ListChangeListener.Change<? extends T> list) {
-      while(list.next()) {
-        if( list.wasAdded() && !(list.getAddedSubList().isEmpty()) ){
-          for(T columnName : list.getAddedSubList()) {
-            addColumn(columnName.toString());
+    ListChangeListener<T> listener = new ListChangeListener<T>() {
+      @Override
+      public void onChanged(ListChangeListener.Change<? extends T> list) {
+        while (list.next()) {
+          if (list.wasAdded() && !(list.getAddedSubList().isEmpty())) {
+            for (T columnName : list.getAddedSubList()) {
+              addColumn(columnName.toString());
+            }
           }
         }
+        // TODO 削除時の動作もつけたい
       }
-     // TODO 削除時の動作もつけたい
-    }
-  };
+    };
 
-  return listener;
+    return listener;
   }
 
 }
