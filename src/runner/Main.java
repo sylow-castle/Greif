@@ -19,6 +19,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import java.io.*;
+import java.util.Properties;
+
 import table.*;
 import database.*;
 
@@ -26,6 +29,7 @@ import database.*;
 public class Main extends Application {
   public Connection defaultConnection = null;
   public static Window window;
+  public static final Properties prop = new Properties();
     /**
      * @param args
      */
@@ -34,6 +38,7 @@ public class Main extends Application {
     Tester.test_loadTextFile();
     Tester.test_CreateGraph_2();
     */
+    loadConfigPropeties();
     launch(args);
   }
 
@@ -64,8 +69,24 @@ public class Main extends Application {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-
   }
 
-
-}
+    private static void loadConfigPropeties() {
+      InputStream inStream = null;
+      try {
+        inStream = new BufferedInputStream(
+            new FileInputStream("resource/config.properties"));
+        prop.load(inStream);
+      } catch (IOException e) {
+        e.printStackTrace();
+      } finally {
+        try {
+          if (inStream != null) {
+            inStream.close();
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
