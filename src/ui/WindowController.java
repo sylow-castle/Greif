@@ -10,8 +10,11 @@ import coder.nodeAttribute.Shape;
 import graph.Edge;
 import graph.IdentifiedGraph;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.FileSystem;
@@ -22,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -50,12 +54,13 @@ import javafx.stage.FileChooser;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import java.util.Properties;
 
 public class WindowController implements Initializable {
-  private static final String INITIAL_DIR = "D:/temp/";
-  private static final String PNG_FILE_PATH = "D:\\temp\\sample.png";
-  private static final String DOT_FILE_PATH = "D:\\temp\\dotlang.dot";
-  private static final String GRAPHVIXZ_BIN_PATH = "D:\\Program\\Graphviz2.38\\bin\\dot.exe";
+  private static final String INITIAL_DIR = runner.Main.prop.getProperty("InitialDir");
+  private static final String PNG_FILE_PATH = runner.Main.prop.getProperty("ImageFilePath");
+  private static final String DOT_FILE_PATH = runner.Main.prop.getProperty("DOTFilePath");
+  private static final String GRAPHVIXZ_BIN_PATH = runner.Main.prop.getProperty("GraphVizPath") + "dot.exe";
 
   @FXML
   public VBox root;
@@ -104,23 +109,7 @@ public class WindowController implements Initializable {
 
       if(choosedFile != null) {
         //スキーマの追加操作の実行
-        TableSchema choosedSchema;
-        try {
-          choosedSchema = new TableSchema(choosedFile.getAbsolutePath());
-
-          //メインウィンドウへの追加
-          Tab schemaTab = new Tab(choosedFile.getAbsolutePath());
-          tabsroot.getTabs().add(schemaTab);
-          schemaTab.setContent(choosedSchema.getSchemaView());
-
-          //選択用コンボボックスへの追加
-          SchemaList.getItems().add(choosedSchema);
-
-        } catch (SQLException e1) {
-          e1.printStackTrace();
-        } catch (IOException e1) {
-          e1.printStackTrace();
-        }
+        this.addSchema(choosedFile.getAbsolutePath());
       }
     };
     OpenFile.setOnAction(handler);
@@ -137,7 +126,28 @@ public class WindowController implements Initializable {
       list.add(e);
     }
      ShapeList.setItems(list);
+  }
 
+
+  private void addSchema(String path) {
+    //スキーマの追加操作の実行
+    TableSchema choosedSchema;
+    try {
+      choosedSchema = new TableSchema(path);
+
+      //メインウィンドウへの追加
+      Tab schemaTab = new Tab(path);
+      tabsroot.getTabs().add(schemaTab);
+      schemaTab.setContent(choosedSchema.getSchemaView());
+
+      //選択用コンボボックスへの追加
+      SchemaList.getItems().add(choosedSchema);
+
+    } catch (SQLException e1) {
+      e1.printStackTrace();
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
 
   }
 
@@ -161,6 +171,26 @@ public class WindowController implements Initializable {
       proc.waitFor();
     } catch( Exception e ) {
        System.out.println(e);
+    }
+  }
+
+  public void readProp() {
+    final Properties prop = new Properties();
+    InputStream inStream = null;
+    try {
+      inStream = new BufferedInputStream(new FileInputStream("sample.properties"));
+      prop.load(inStream);
+      addSchema(prop.getProperty("mykey"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        if(inStream != null) {
+          inStream.close();
+        }
+      } catch(IOException e) {
+          e.printStackTrace();
+      }
     }
   }
 }
