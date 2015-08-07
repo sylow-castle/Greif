@@ -284,6 +284,10 @@ public class TableSchema {
   }
 
   public void save() {
+    this.save(this.filePath);
+  }
+
+  public void save(String filePath) {
     try {
       Connection dbFile = DbFileLoader.createMemoryDB();
       Statement stmt = dbFile.createStatement();
@@ -346,7 +350,7 @@ public class TableSchema {
 
       stmt.addBatch("commit;");
       stmt.executeBatch();
-      stmt.executeUpdate("backup to " + this.filePath);
+      stmt.executeUpdate("backup to " + filePath);
       dbFile.close();
 
     } catch (SQLException e) {

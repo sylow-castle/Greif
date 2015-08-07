@@ -48,7 +48,6 @@ public class Main extends Application {
     defaultConnection = DbFileLoader.createMemoryDB();
     try {
       URL url = ui.view.fxmlRoot.class.getResource("MainWindowView.fxml");
-      System.out.println(url.toString());
       FXMLLoader loader = new FXMLLoader(url);
       VBox root = (VBox) loader.load();
       Scene scene = new Scene(root, 640, 480);

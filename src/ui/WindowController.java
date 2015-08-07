@@ -69,6 +69,8 @@ public class WindowController implements Initializable {
   public Button Generate;
 
   @FXML
+  public Button SaveAsFile;
+  @FXML
   public Button SaveFile;
 
   @FXML
@@ -99,26 +101,44 @@ public class WindowController implements Initializable {
     SchemaList.setItems(FXCollections.<TableSchema>observableArrayList());
 
     //メニュータブの設定
-    handler = (ActionEvent e ) -> {
+    //ファイルを開くボタン
+    EventHandler<ActionEvent> open =  (ActionEvent e ) -> {
       FileChooser chooser = new FileChooser();
-      chooser.setTitle("ファイルを選択");
+      chooser.setTitle("開く");
       File dir = new File(INITIAL_DIR);
       chooser.setInitialDirectory(dir);
       File choosedFile = chooser.showOpenDialog(runner.Main.window);
-
 
       if(choosedFile != null) {
         //スキーマの追加操作の実行
         this.addSchema(choosedFile.getAbsolutePath());
       }
     };
-    OpenFile.setOnAction(handler);
+    OpenFile.setOnAction(open);
 
-    handler = (ActionEvent e) -> {
+
+
+    //保存ボタン
+    EventHandler<ActionEvent> saveAs = (ActionEvent e ) -> {
+      FileChooser chooser = new FileChooser();
+      chooser.setTitle("名前をつけて保存");
+      File dir = new File(INITIAL_DIR);
+      chooser.setInitialDirectory(dir);
+      File choosedFile = chooser.showSaveDialog(runner.Main.window);
+
+      if(choosedFile != null) {
+        TableSchema target = SchemaList.getSelectionModel().getSelectedItem();
+        target.save(choosedFile.getAbsolutePath());
+      }
+    };
+    SaveAsFile.setOnAction(saveAs);
+
+    //上書き保存ボタン
+    EventHandler<ActionEvent> save = (ActionEvent e ) -> {
       TableSchema target = SchemaList.getSelectionModel().getSelectedItem();
       target.save();
     };
-    SaveFile.setOnAction(handler);
+    SaveFile.setOnAction(save);
 
     Shape[] shapes = Shape.values();
     ObservableList<Shape> list = FXCollections.observableArrayList();

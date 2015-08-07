@@ -22,7 +22,8 @@
             <Button fx:id="OpenFile" text="開く"></Button>
               <ComboBox fx:id="SchemaList"></ComboBox>
             <HBox>
-              <Button fx:id="SaveFile" text="保存"></Button>
+              <Button fx:id="SaveAsFile" text="保存"></Button>
+              <Button fx:id="SaveFile" text="上書き保存"></Button>
               <Button fx:id="Generate" text="グラフ生成"></Button>
             </HBox>
             <ComboBox fx:id="ShapeList"></ComboBox>
