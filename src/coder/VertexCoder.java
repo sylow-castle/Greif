@@ -1,54 +1,40 @@
 package coder;
+
 import java.util.List;
 import java.util.ArrayList;
 
-import graph.Vertex;
+public class VertexCoder implements DotWriter {
+  private final String id;
+  private final AttributeCoder attribute;
 
-public class VertexCoder implements DotWriter{
-  private String id;
-  private AttributeCoder attribute;
-
-
-  public VertexCoder(Vertex vertex){
-    this.id = vertex.toString();
+  public VertexCoder(String id) {
+    this(id, null);
   }
 
-  public VertexCoder(String id){
-    this.id = id;
-  }
-
-  public VertexCoder(String id, String label) {
+  public VertexCoder(String id, List<DotAttribute> attribute) {
+    if (null == id) {
+      id = "";
+    }
     this.id = id;
 
-    //label属性の設定
-    DotAttribute labelAttribute = new DotAttribute() {
-      @Override
-      public String getKey() {
-        return "label";
-      }
-
-      @Override
-      public String getValue() {
-        return "\"" + label + "\"";
-      }
-    };
-
-    List<DotAttribute> a = new ArrayList<DotAttribute>();
-    a.add(labelAttribute);
-    this.attribute = new AttributeCoder(a);
-  }
-
-  public VertexCoder(String node_id, List<DotAttribute> attribute){
-    this.id = node_id;
     this.attribute = new AttributeCoder(attribute);
   }
 
-  public List<String> writeDot(){
+  public List<String> writeDot() {
     List<String> dotLang = new ArrayList<String>();
+    if (id.length() <= 0) {
+      return dotLang;
+    }
 
-    String dotCode = id + " " + attribute.writeDot().get(0) + ";";
+    //Dot言語のString設定。
+    String dotCode;
+    dotCode = id;
+    if (attribute.writeDot().get(0).length() > 0) {
+      dotCode += " " + attribute.writeDot().get(0);
+    }
+    dotCode += ";";
+
     dotLang.add(dotCode);
-
     return dotLang;
   }
 }

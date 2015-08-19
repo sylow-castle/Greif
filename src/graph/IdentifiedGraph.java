@@ -4,12 +4,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Test;
+
+import for_now.Dowser;
+import for_now.Mineral;
+
 public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
   private Map<Vertex, T> valueMap;
   private Map<T, Vertex> vertexMap;
   private EditableGraph baseGraph;
 
-  public IdentifiedGraph(){
+  public IdentifiedGraph() {
     this.valueMap = new HashMap<Vertex, T>();
     this.vertexMap = new HashMap<T, Vertex>();
     this.baseGraph = new EditableGraph();
@@ -20,6 +25,12 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
      this.addVertices(vertices);
   }
 
+  protected IdentifiedGraph(EditableGraph baseGraph){
+    this();
+    this.baseGraph = baseGraph;
+ }
+
+
   public T valueOf(Vertex vertex){
     return valueMap.get(vertex);
   }
@@ -28,12 +39,12 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
     return vertexMap.get(Value);
   }
 
-  public Map<T, Vertex> getVertexMap(){
+  public Map<T, Vertex> createValueToVertexMap(){
     Map<T, Vertex> map = new HashMap<T, Vertex>(vertexMap);
     return map;
   }
 
-  public Map<Vertex, T> getValueMap(){
+  public Map<Vertex, T> createVertexToValueMap(){
     Map<Vertex, T> map = new HashMap<Vertex, T>(valueMap);
     return map;
   }
@@ -53,7 +64,7 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
 
   public void addVertices(Set<T> vertices){
     for(T vertex : vertices){
-      addVertex(vertex);
+      this.addVertex(vertex);
     }
   }
 
@@ -90,17 +101,17 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
 
   public void addEdges(Set<Edge> edges){
     for(Edge e : edges){
-      baseGraph.addEdge(e);
+      this.addEdge(e);
     }
   }
   //startからendへ結ばれる辺を返却します。
-  //directionがnonDirectionの場合はendからstartへ結ばれる辺も戻り値に含まれます。
-  public Set<Edge> getEdgesAsSet(T start, T end, Edge.Direction view){
+  //directionがNonDirectedの場合はendからstartへ結ばれる辺も戻り値に含まれます。
+  public Set<Edge> getEdgesAsSet(T start, T end, Edge.Direction direction){
     Edge edge = new Edge(vertexMap.get(start), vertexMap.get(end));
     Set<Edge> edges = new HashSet<Edge>();
 
     for(Edge e : baseGraph.getAllEdgeAsSet()){
-      if(view.isRelated(edge, e)) {
+      if(direction.isRelated(edge, e)) {
         edges.add(e);
       }
     }
@@ -116,8 +127,8 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
     baseGraph.removeEdge(edge);
   }
 
-  //startからendへ結ばれる辺を除きます。
-  //directionがnonDirectionの場合はendからstartへ結ばれる辺も除かれます。
+  //startからendへ結ばれる辺を除去します。
+  //directionがNonDirectionの場合はendからstartへ結ばれる辺も除去されます。
   public void removeEdge(T start, T end, Edge.Direction direction){
     removeEdges(getEdgesAsSet(start, end, direction));
   }
@@ -128,12 +139,14 @@ public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
     }
   }
 
+  @Override
   public boolean isConnected(T start, T end, Edge.Direction view) {
-    return baseGraph.isConnected(new Edge(vertexMap.get(start), vertexMap.get(end)), view);
+    return baseGraph.isConnected(vertexMap.get(start), vertexMap.get(end), view);
   }
 
+  @Override
   public int countConnection(T start, T end, Edge.Direction view){
-    return baseGraph.countConnection(new Edge(vertexMap.get(start), vertexMap.get(end)), view);
+    return baseGraph.countConnection(vertexMap.get(start), vertexMap.get(end), view);
   }
 
   @Override

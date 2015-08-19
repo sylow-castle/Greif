@@ -13,7 +13,7 @@ public class Utilities {
 
   public static String serealizeString(List<String> list, String delimiter) {
     if(null == list ) {
-      return null;
+      return "";
     }
 
     if(null == delimiter ) {

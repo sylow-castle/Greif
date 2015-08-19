@@ -1,5 +1,4 @@
 package receiver;
-import graph.listVertex;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

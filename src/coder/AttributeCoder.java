@@ -2,20 +2,18 @@ package coder;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class AttributeCoder implements DotWriter{
   private SortedMap<String, String> attributeMap;
 
-  protected AttributeCoder(Collection<? extends DotAttribute> attribute) {
+  protected AttributeCoder(Collection<? extends DotAttribute> attributes) {
     attributeMap = new TreeMap<String, String>();
 
-    if(null != attribute) {
-      for(DotAttribute a : attribute) {
+    if(null != attributes) {
+      for(DotAttribute a : attributes) {
         attributeMap.put(a.getKey(), a.getValue());
       }
     }
@@ -34,7 +32,7 @@ public class AttributeCoder implements DotWriter{
     String delimiter = "";
     for(String Name : attributeMap.keySet()) {
       if( (null != attributeMap.get(Name)) && (attributeMap.get(Name).length() > 0) ){
-        code = code + delimiter + Name + "=" + attributeMap.get(Name);
+        code = code + delimiter + "\"" + Name + "\"=\"" + attributeMap.get(Name) + "\"";
         delimiter = ", ";
       }
     }

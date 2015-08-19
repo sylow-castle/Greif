@@ -5,7 +5,7 @@ import java.util.Set;
 import for_now.Utilities;
 
 
-public class EditableGraph implements Graph, ElementalAnalyzer<Vertex>, Editor {
+public class EditableGraph implements Graph, Editor , ElementalAnalyzer<Vertex>{
   protected  Set<Vertex> vertices;
   protected  Set<Edge> edges;
 
@@ -86,23 +86,26 @@ public class EditableGraph implements Graph, ElementalAnalyzer<Vertex>, Editor {
 
 
   //簡単な解析
-  public boolean isConnected(Edge edge, Edge.Direction view) {
+  @Override
+  public boolean isConnected(Vertex start, Vertex end, Edge.Direction view) {
     for(Edge e : edges) {
-      if(view.isRelated(edge, e)){
+      if(view.isRelated(new Edge(start, end), e)){
         return true;
       }
     }
     return false;
   }
 
-  public int countConnection(Edge edge, Edge.Direction view){
+  @Override
+  public int countConnection(Vertex start, Vertex end, Edge.Direction view){
     int counter = 0;
     for(Edge e : edges) {
-      counter = counter + Utilities.boolToNum(view.isRelated(edge, e));
+      counter = counter + Utilities.boolToNum(view.isRelated(new Edge(start, end), e));
     }
     return counter;
   }
 
+  @Override
   public Set<Vertex> collectNeighborVertex(Vertex vertex){
     Set<Vertex> vertices = new HashSet<Vertex>();
     for(Edge e : this.edges){
@@ -118,6 +121,7 @@ public class EditableGraph implements Graph, ElementalAnalyzer<Vertex>, Editor {
     return vertices;
   }
 
+  @Override
   public int computeDegree(Vertex vertex){
     int degree = 0;
     for(Edge e : this.edges){

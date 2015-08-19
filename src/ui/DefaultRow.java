@@ -2,12 +2,10 @@ package ui;
 
 
 import java.util.*;
-import javafx.beans.property.SetProperty;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.FXCollections;
 

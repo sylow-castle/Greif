@@ -1,6 +1,6 @@
 package graph;
 
-public interface Editor {
+public interface Editor extends Graph {
 
   // 頂点に関する操作、追加、参照、削除
   public abstract void addVertex(Vertex vertex);

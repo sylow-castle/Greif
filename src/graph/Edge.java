@@ -1,4 +1,5 @@
 package graph;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -6,26 +7,25 @@ import java.util.HashSet;
 
 import for_now.EquivalRelation;
 
-public class Edge{
+public class Edge implements Cloneable {
   private final Vertex start;
   private final Vertex end;
 
-  public interface Direction extends EquivalRelation<Edge>{
+  public enum Direction implements EquivalRelation<Edge> {
+    Directed {
+      @Override
+      public boolean isRelated(Edge edge1, Edge edge2) {
+        return (edge1.start == edge2.start) && (edge2.end == edge2.end);
+      }
+    },
+
+    NonDirected {
+      @Override
+      public boolean isRelated(Edge edge1, Edge edge2) {
+        return (edge1.getTerminalsAsSet().equals(edge2.getTerminalsAsSet()));
+      }
+    }
   }
-
-  public static final Direction Directed = new Direction() {
-    @Override
-    public boolean isRelated(Edge edge1, Edge edge2) {
-      return (edge1.start == edge2.start) && (edge2.end == edge2.end);
-    }
-  };
-
-  public static final Direction NonDirected = new Direction() {
-    @Override
-    public boolean isRelated(Edge edge1, Edge edge2) {
-      return (edge1.getTerminalsAsSet().equals(edge2.getTerminalsAsSet()));
-    }
-  };
 
   public Edge() {
     this(new Vertex(), new Vertex());
@@ -60,14 +60,7 @@ public class Edge{
   }
 
   @Override
-  public String toString(){
-    String string = start.toString() + "->" + end.toString();
-    return string;
+  public String toString() {
+    return start.toString() + "->" + end.toString();
   }
-
-  @Override
-  public Edge clone(){
-    return new Edge(this.start, this.end);
-  }
-
 }

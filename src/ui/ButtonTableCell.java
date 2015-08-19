@@ -17,7 +17,7 @@ public class ButtonTableCell<S, T> extends TableCell<S, T> {
     super.updateItem(item, empty);
     if(!empty){
       setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-      setGraphic(new Button("test"));
+      setGraphic(button);
     }
   }
 }

@@ -1,17 +1,17 @@
 package coder;
 
 public class SimpleAttribute implements DotAttribute {
-  private String name;
+  private String key;
   private String value;
 
-  public SimpleAttribute(String name, String value) {
-    this.name = name;
+  public SimpleAttribute(String key, String value) {
+    this.key = key;
     this.value = value;
   }
 
   @Override
   public String getKey() {
-    return name;
+    return key;
   }
   @Override
   public String getValue() {

@@ -10,16 +10,12 @@ import table.SimpleStringTable;
 import ui.DefaultRow;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
-import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.SelectionModel;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
-import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
@@ -28,7 +24,6 @@ import javafx.util.Callback;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -67,7 +62,6 @@ public class DefaultTableTabController implements Initializable {
     col.setCellFactory(new Callback<TableColumn<DefaultRow, String>, TableCell<DefaultRow, String>>() {
       @Override
       public TableCell<DefaultRow, String> call(TableColumn<DefaultRow, String> e) {
-        ButtonTableCell<DefaultRow, String> cell = new ButtonTableCell<DefaultRow, String>();
         return new ButtonTableCell<DefaultRow, String>();
       }
     });
