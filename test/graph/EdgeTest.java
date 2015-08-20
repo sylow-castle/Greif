@@ -74,4 +74,20 @@ public class EdgeTest {
     assertThat(actual, is(expected));
   }
 
+  @Test
+  public void 構築子の引数がnullの場合のtoStringで文字列nullを返す() {
+    String expected = "null,null";
+    String actual = new Edge(null, null).toString();
+    assertThat(actual, is(expected));
+  }
+
+  @Test
+  public void 構築子の引数がnullでない場合引数のtoStringを利用() {
+
+    String expected = edge1.getStart().toString() + "," + edge1.getEnd().toString();
+    String actual = edge1.toString();
+    assertThat(actual, is(expected));
+  }
+
+
 }

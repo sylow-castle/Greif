@@ -73,7 +73,7 @@ public class Edge implements Cloneable {
     if(null == this.start) {
       end = "null";
     } else {
-      end = this.start.toString();
+      end = this.end.toString();
     }
 
     return start + "," + end;
