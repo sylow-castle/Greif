@@ -1,35 +1,63 @@
 package graph;
+
 import java.util.HashSet;
 import java.util.Set;
+import graph.Edge.Direction;
 
-import for_now.Utilities;
-
-
-public class EditableGraph implements Graph, Editor , ElementalAnalyzer<Vertex>{
-  protected  Set<Vertex> vertices;
-  protected  Set<Edge> edges;
+public class EditableGraph implements Graph, Editor, ElementalAnalyzer<Vertex> {
+  protected final Set<Vertex> vertices;
+  protected final Set<Edge> edges;
+  protected final ElementalAnalyzer<Vertex> analyzer;
 
   public EditableGraph() {
-    super();
-    this.vertices = new HashSet<Vertex>();
-    this.edges = new HashSet<Edge>();
+    this(null, null, null);
+  }
+
+  EditableGraph(ElementalAnalyzer<Vertex> analyzer) {
+    this(null, null, analyzer);
   }
 
   public EditableGraph(Set<Vertex> vertices, Set<Edge> edges) {
-    this();
-    this.vertices.addAll(vertices);
-
-    for(Edge edge : edges) {
-      this.addEdge(edge);
-    }
+    this(vertices, edges, null);
   }
 
+  public EditableGraph(Graph graph) {
+    this(graph.getAllVertexAsSet(), graph.getAllEdgeAsSet(), null);
+  }
 
+  EditableGraph(Set<Vertex> vertices, Set<Edge> edges, ElementalAnalyzer<Vertex> analyzer) {
+    super();
+    //nullの引数は適当なものに置き換え
+    if (null == vertices) {
+      vertices = new HashSet<Vertex>();
+    }
+
+    if (null == edges) {
+      edges = new HashSet<Edge>();
+    }
+
+    if (null == analyzer) {
+      analyzer = new SimpleElementalAnalyzer(this);
+    }
+
+    //インスタンス変数の設定
+    this.vertices = new HashSet<Vertex>(vertices);
+    this.edges = new HashSet<Edge>();
+    for (Edge edge : edges) {
+      this.addEdge(edge);
+    }
+
+    this.removeEdge(null);
+    this.removeVertex(null);
+    this.analyzer = analyzer;
+  }
 
   // 頂点に関する操作。追加、参照、削除の順番。
   @Override
   public void addVertex(Vertex vertex) {
-    vertices.add(vertex);
+    if (null != vertex) {
+      vertices.add(vertex);
+    }
   }
 
   @Override
@@ -42,21 +70,21 @@ public class EditableGraph implements Graph, Editor , ElementalAnalyzer<Vertex>{
 
   @Override
   public void removeVertex(Vertex vertex) {
-    for(Edge edge : edges){
-      if( edge.getTerminalsAsSet().contains(vertex)){
-        edges.remove(edge);
+    //ConcurrentModificationException回避のためにgetAllEdgeAsSetメソッドを使ってる
+    for (Edge edge : this.getAllEdgeAsSet()) {
+      if (edge.getTerminalsAsSet().contains(vertex)) {
+        this.edges.remove(edge);
       }
     }
 
     vertices.remove(vertex);
   }
 
-
   // 辺に関する操作。追加、参照、削除の順番。
   @Override
   public void addEdge(Edge edge) {
-    if(vertices.containsAll(edge.getTerminalsAsSet())) {
-      edges.add(edge);
+    if (null != edge && vertices.containsAll(edge.getTerminalsAsSet())) {
+      this.edges.add(edge);
     }
   }
 
@@ -67,12 +95,11 @@ public class EditableGraph implements Graph, Editor , ElementalAnalyzer<Vertex>{
     return edges;
   }
 
-
   public Set<Edge> getEdges(Vertex start, Vertex end, Edge.Direction view) {
+    Set<Edge> set = new HashSet<Edge>();
     Edge edge = new Edge(start, end);
-    Set<Edge>  set = new HashSet<Edge>();
-    for(Edge e : edges) {
-      if(view.isRelated(edge, e)){
+    for (Edge e : this.edges) {
+      if (view.isRelated(edge, e)) {
         set.add(e);
       }
     }
@@ -81,54 +108,28 @@ public class EditableGraph implements Graph, Editor , ElementalAnalyzer<Vertex>{
 
   @Override
   public void removeEdge(Edge edge) {
-    edges.remove(edge);
+    this.edges.remove(edge);
   }
-
 
   //簡単な解析
   @Override
-  public boolean isConnected(Vertex start, Vertex end, Edge.Direction view) {
-    for(Edge e : edges) {
-      if(view.isRelated(new Edge(start, end), e)){
-        return true;
-      }
-    }
-    return false;
+  public Set<Vertex> collectNeighborVertex(Vertex vertex) {
+    return this.analyzer.collectNeighborVertex(vertex);
   }
 
   @Override
-  public int countConnection(Vertex start, Vertex end, Edge.Direction view){
-    int counter = 0;
-    for(Edge e : edges) {
-      counter = counter + Utilities.boolToNum(view.isRelated(new Edge(start, end), e));
-    }
-    return counter;
+  public int computeDegree(Vertex vertex) {
+    return this.analyzer.computeDegree(vertex);
   }
 
   @Override
-  public Set<Vertex> collectNeighborVertex(Vertex vertex){
-    Set<Vertex> vertices = new HashSet<Vertex>();
-    for(Edge e : this.edges){
-      if(vertex == e.getStart()){
-        vertices.add(e.getEnd());
-      }
-
-      if(vertex == e.getEnd()){
-        vertices.add(e.getStart());
-      }
-    }
-
-    return vertices;
+  public boolean isConnected(Vertex start, Vertex end, Direction view) {
+    return this.analyzer.isConnected(start, end, view);
   }
 
   @Override
-  public int computeDegree(Vertex vertex){
-    int degree = 0;
-    for(Edge e : this.edges){
-      degree = degree + Utilities.boolToNum(e.getStart() == vertex) + Utilities.boolToNum(e.getEnd() == vertex);
-    }
-
-    return  degree;
+  public int countConnection(Vertex start, Vertex end, Direction view) {
+    return this.analyzer.countConnection(start, end, view);
   }
 
 }

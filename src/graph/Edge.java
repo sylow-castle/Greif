@@ -61,6 +61,21 @@ public class Edge implements Cloneable {
 
   @Override
   public String toString() {
-    return start.toString() + "->" + end.toString();
+    String start;
+    String end;
+
+    if(null == this.start) {
+      start = "null";
+    } else {
+      start = this.start.toString();
+    }
+
+    if(null == this.start) {
+      end = "null";
+    } else {
+      end = this.start.toString();
+    }
+
+    return start + "," + end;
   }
 }

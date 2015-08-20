@@ -63,10 +63,16 @@ public class IdentifiedGraphTest {
 
     }
 
+    IdentifiedGraph<String> actual;
+    TestGraph stab;
+    @Before
+    public void setUp() {
+      stab = new TestGraph();
+      actual = new IdentifiedGraph<String>(stab);
+    }
+
     @Test
     public void addEdgeの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
       actual.addEdge(new Edge());
       String expected = "EditableGraph.addEdgeが呼び出されました";
       assertThat(stab.string, is(expected));
@@ -74,8 +80,6 @@ public class IdentifiedGraphTest {
 
     @Test
     public void removeEdgeの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
       actual.removeEdge(new Edge());
       String expected = "EditableGraph.removeEdgeが呼び出されました";
       assertThat(stab.string, is(expected));
@@ -83,8 +87,6 @@ public class IdentifiedGraphTest {
 
     @Test
     public void isConnectedの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
       actual.isConnected("start", "end", Edge.Direction.Directed);
       String expected = "EditableGraph.isConnectedが呼び出されました";
       assertThat(stab.string, is(expected));
@@ -92,8 +94,6 @@ public class IdentifiedGraphTest {
 
     @Test
     public void countConnectionの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
       actual.countConnection("start", "end", Edge.Direction.Directed);
       String expected = "EditableGraph.countConnectionが呼び出されました";
       assertThat(stab.string, is(expected));
@@ -101,9 +101,6 @@ public class IdentifiedGraphTest {
 
     @Test
     public void collectNeighborVertexの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
-
       actual.collectNeighborVertex("start");
       String expected = "EditableGraph.collectNeighborVertexが呼び出されました";
       assertThat(stab.string, is(expected));
@@ -111,19 +108,10 @@ public class IdentifiedGraphTest {
 
     @Test
     public void computeDegreeの利用() {
-      TestGraph stab = new TestGraph();
-      IdentifiedGraph<String> actual = new IdentifiedGraph<String>(stab);
-
       actual.computeDegree("start");
       String expected = "EditableGraph.computeDegreeが呼び出されました";
       assertThat(stab.string, is(expected));
     }
   }
-
-  public static class 状態の検証 {
-
-  }
-
-
 
 }
