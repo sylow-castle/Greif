@@ -1,13 +1,11 @@
 package graph;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
-
-import for_now.Dowser;
-import for_now.Mineral;
 
 public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
   private Map<Vertex, T> valueMap;

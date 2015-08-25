@@ -32,7 +32,7 @@ public class SimpleElementalAnalyzer implements ElementalAnalyzer<Vertex> {
     }
     return counter;
   }
-
+  
   @Override
   public Set<Vertex> collectNeighborVertex(Vertex vertex) {
     Set<Vertex> vertices = new HashSet<Vertex>();
