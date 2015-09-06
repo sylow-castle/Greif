@@ -27,7 +27,10 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.beans.property.StringProperty;
@@ -53,6 +56,9 @@ public class TableSchema {
   private Map<String, String> columnToAttributeId;
   private Map<String, TableView<DefaultRow>> tableViews;
 
+  //テーブルと列の管理を行う
+  private TreeView<String> tableManager;
+
   //定数
   private static final String DOT_WRITE_PATH = "D:\\temp\\dotlang.dot";
   private static final String LABEL = "label";
@@ -73,6 +79,31 @@ public class TableSchema {
       this.tableViews = new HashMap<String, TableView<DefaultRow>>();
       this.tableNames = FXCollections.<String>observableArrayList();
       this.columnToAttributeId = createDefaultAttributeMap();
+      this.tableManager = new TreeView<>();
+
+      //テーブルマネージャの追加
+      TreeItem<String> rootItem = new TreeItem<String>();
+      rootItem.setValue("Tables");
+      rootItem.setExpanded(true);
+      tableManager.setRoot(rootItem);
+
+
+      this.tableNames.addListener(new ListChangeListener<String>(){
+        @Override
+        public void onChanged(ListChangeListener.Change<? extends String> change) {
+          while(change.next()) {
+            for(String tableName : change.getAddedSubList()) {
+              TreeItem<String> item = new TreeItem<String>(tableName);
+              item.setExpanded(true);
+              rootItem.getChildren().add(item);
+            }
+          }
+        }
+      });
+
+      Tab managerTab = new Tab("テーブル一覧");
+      managerTab.setContent(tableManager);
+      this.schemaView.getTabs().add(managerTab);
 
       //テーブルの追加
       Connection dbFile = DbFileLoader.loadDbFile(filePath);
@@ -84,12 +115,14 @@ public class TableSchema {
         this.tableNames.add(tableName);
       }
 
+
       for(String tableName : this.tableNames) {
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
         SimpleStringTable table = buildSimpleTable(values);
         this.tables.put(tableName, table);
         this.tableViews.put(tableName, buildTableView(tableName, table));
       }
+
       dbFile.close();
     } catch (SQLException e) {
       this.schemaView = null;
@@ -148,6 +181,25 @@ public class TableSchema {
 
       //列の設定
       ObservableList<String> columns = FXCollections.<String> observableArrayList();
+
+
+      TreeItem<String> tableItem = this.sertchTable(tableId);
+      columns.addListener(new ListChangeListener<String>() {
+
+        @Override
+        public void onChanged(ListChangeListener.Change<? extends String> c) {
+          if (null == tableItem) {
+            return;
+          }
+
+          while (c.next()) {
+            for (String columnName : c.getAddedSubList()) {
+              tableItem.getChildren().add(new TreeItem<String>(columnName));
+            }
+          }
+        }
+      });
+
       columns.addListener(controller.<String> getAddColumnListener());
       for (String columnName : table.getColumns()) {
         columns.add(columnName);
@@ -175,6 +227,16 @@ public class TableSchema {
       e.printStackTrace();
       return null;
     }
+  }
+
+  private TreeItem<String> sertchTable(String name) {
+    TreeItem<String> result = null;
+    for(TreeItem<String> item : this.tableManager.getRoot().getChildren()) {
+     if(item.getValue().equals(name)) {
+       result = item;
+     }
+    }
+    return result;
   }
 
   private Map<String, String> getTabNameMap() {
