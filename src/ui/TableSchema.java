@@ -22,19 +22,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Cell;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.control.cell.TextFieldTreeCell;
+import javafx.util.Callback;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 
 import java.io.IOException;
 
@@ -58,6 +71,7 @@ public class TableSchema {
 
   //テーブルと列の管理を行う
   private TreeView<String> tableManager;
+  private Map<TreeItem<String> , TableObject> objectMap = new HashMap<>();
 
   //定数
   private static final String DOT_WRITE_PATH = "D:\\temp\\dotlang.dot";
@@ -77,25 +91,52 @@ public class TableSchema {
       this.schemaView = new TabPane();
       this.tables = new HashMap<String, SimpleStringTable>();
       this.tableViews = new HashMap<String, TableView<DefaultRow>>();
-      this.tableNames = FXCollections.<String>observableArrayList();
+      this.tableNames = FXCollections.<String> observableArrayList();
       this.columnToAttributeId = createDefaultAttributeMap();
       this.tableManager = new TreeView<>();
 
-      //テーブルマネージャの追加
+
+      //テーブルマネージャの設定
+      tableManager.setCellFactory(new Callback<TreeView<String>, TreeCell<String>>() {
+        @Override
+        public TreeCell<String> call(TreeView<String> param) {
+
+          TreeCell<String> returnCell;
+          returnCell = TextFieldTreeCell.forTreeView().call(param);
+
+          //アイテム追加後に設定しなおすこと
+          ObjectProperty<ContextMenu> contextMenuProp = returnCell.contextMenuProperty();
+          ChangeListener<? super TreeItem<String>> listener = new ChangeListener<TreeItem<String>>() {
+            @Override
+            public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
+                TreeItem<String> newValue) {
+                if(null != newValue){
+                  contextMenuProp.set(createContextMenu(objectMap.get(newValue)));
+                }
+            }
+          };
+          returnCell.treeItemProperty().addListener(listener );
+          return returnCell;
+        }
+      });
+
+      tableManager.setId("TreeView");
       TreeItem<String> rootItem = new TreeItem<String>();
       rootItem.setValue("Tables");
       rootItem.setExpanded(true);
+      this.objectMap.put(rootItem, TableObject.ROOT);
       tableManager.setRoot(rootItem);
 
 
-      this.tableNames.addListener(new ListChangeListener<String>(){
+      this.tableNames.addListener(new ListChangeListener<String>() {
         @Override
         public void onChanged(ListChangeListener.Change<? extends String> change) {
-          while(change.next()) {
-            for(String tableName : change.getAddedSubList()) {
+          while (change.next()) {
+            for (String tableName : change.getAddedSubList()) {
               TreeItem<String> item = new TreeItem<String>(tableName);
               item.setExpanded(true);
               rootItem.getChildren().add(item);
+              objectMap.put(item, TableObject.TABLE);
             }
           }
         }
@@ -115,8 +156,7 @@ public class TableSchema {
         this.tableNames.add(tableName);
       }
 
-
-      for(String tableName : this.tableNames) {
+      for (String tableName : this.tableNames) {
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
         SimpleStringTable table = buildSimpleTable(values);
         this.tables.put(tableName, table);
@@ -129,6 +169,44 @@ public class TableSchema {
       e.printStackTrace();
     }
   }
+
+
+  ContextMenu createContextMenu(TableObject type) {
+    ContextMenu menu = new ContextMenu();
+    switch (type) {
+    case ROOT :
+      MenuItem item = new MenuItem("新しい表を追加");
+      item.setOnAction((ActionEvent e) -> {
+        this.tableNames.add("newTable_" + TableObject.count);
+        TableObject.count++;
+        return;
+      });
+      menu.getItems().add(item);
+
+      break;
+
+    case TABLE:
+      menu.getItems().add(new MenuItem("新しい表を追加"));
+      menu.getItems().add(new MenuItem("この表を削除"));
+      menu.getItems().add(new MenuItem("新しい列を追加"));
+      break;
+
+    case COLUMN:
+      menu.getItems().add(new MenuItem("新しい列を追加"));
+      menu.getItems().add(new MenuItem("この列を削除"));
+      break;
+    }
+    return menu;
+  }
+
+  enum TableObject {
+    ROOT,
+    TABLE,
+    COLUMN;
+
+    public static int count = 0;
+  }
+
 
   private SimpleStringTable buildSimpleTable(ResultSet tableData) {
     SimpleStringTable table = new SimpleStringTable();
@@ -182,10 +260,8 @@ public class TableSchema {
       //列の設定
       ObservableList<String> columns = FXCollections.<String> observableArrayList();
 
-
       TreeItem<String> tableItem = this.sertchTable(tableId);
       columns.addListener(new ListChangeListener<String>() {
-
         @Override
         public void onChanged(ListChangeListener.Change<? extends String> c) {
           if (null == tableItem) {
@@ -194,7 +270,9 @@ public class TableSchema {
 
           while (c.next()) {
             for (String columnName : c.getAddedSubList()) {
-              tableItem.getChildren().add(new TreeItem<String>(columnName));
+              TreeItem<String> item = new TreeItem<String>(columnName);
+              tableItem.getChildren().add(item);
+              objectMap.put(item, TableObject.COLUMN);
             }
           }
         }
@@ -231,10 +309,10 @@ public class TableSchema {
 
   private TreeItem<String> sertchTable(String name) {
     TreeItem<String> result = null;
-    for(TreeItem<String> item : this.tableManager.getRoot().getChildren()) {
-     if(item.getValue().equals(name)) {
-       result = item;
-     }
+    for (TreeItem<String> item : this.tableManager.getRoot().getChildren()) {
+      if (item.getValue().equals(name)) {
+        result = item;
+      }
     }
     return result;
   }
@@ -255,7 +333,7 @@ public class TableSchema {
     List<DefaultRow> list = new ArrayList<DefaultRow>();
     @SuppressWarnings("unchecked")
     TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#vertex").lookup("#table");
-    for(DefaultRow row : table.getItems()) {
+    for (DefaultRow row : table.getItems()) {
       list.add(row);
     }
     return list;
@@ -265,7 +343,7 @@ public class TableSchema {
     List<DefaultRow> list = new ArrayList<DefaultRow>();
     @SuppressWarnings("unchecked")
     TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#edge").lookup("#table");
-    for(DefaultRow row : table.getItems()) {
+    for (DefaultRow row : table.getItems()) {
       list.add(row);
     }
     return list;
@@ -317,7 +395,6 @@ public class TableSchema {
     givenColumnName.add(SHAPE);
     givenColumnName.add(COLOR);
 
-
     Set<VertexCoder> VCoder = new HashSet<VertexCoder>();
     //頂点に属性を付与
     for (String vertex : baseGraph.getAllVertexAsSet()) {
@@ -355,7 +432,6 @@ public class TableSchema {
       Statement stmt = dbFile.createStatement();
       stmt.addBatch("begin;");
 
-
       //テーブルの作成
       Map<String, SimpleStringTable> tables = new HashMap<String, SimpleStringTable>();
       for (String tableName : this.tableNames) {
@@ -363,7 +439,7 @@ public class TableSchema {
         TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
         SimpleStringTable table = this.tables.get(tableName);
         table.removeAllRecords();
-        for(DefaultRow row : view.getItems()) {
+        for (DefaultRow row : view.getItems()) {
           table.addRecord(row.degenerateRow());
         }
 
@@ -373,7 +449,7 @@ public class TableSchema {
       //create文の作成
       for (String tableName : this.tableNames) {
         //create文作成
-        String sql ="";
+        String sql = "";
         sql = "create table " + tableName + " ";
 
         List<String> columns = new ArrayList<String>();
@@ -386,7 +462,7 @@ public class TableSchema {
 
       //insert文の作成
       for (String tableName : this.tableNames) {
-        String sql ="";
+        String sql = "";
 
         SimpleStringTable table = tables.get(tableName);
         //テーブルのinsert文
