@@ -24,6 +24,7 @@ import javafx.util.Callback;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;

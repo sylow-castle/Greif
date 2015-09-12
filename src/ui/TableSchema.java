@@ -344,7 +344,7 @@ public class TableSchema {
     for (Edge edge : baseGraph.getAllEdgeAsSet()) {
       String start = baseGraph.valueOf(edge.getStart());
       String end = baseGraph.valueOf(edge.getEnd());
-      ECoder.add(new EdgeCoder(start, end));
+      ECoder.add(new EdgeCoder(start, end, true));
     }
 
     GraphCoder GCoder = new GraphCoder(VCoder, ECoder);
