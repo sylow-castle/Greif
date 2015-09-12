@@ -1,6 +1,4 @@
 package runner;
-import graph.EditableGraph;
-import graph.Editor;
 import graph.listVertex;
 
 import java.util.List;
@@ -120,7 +118,6 @@ public class Tester {
     /*
      * グラフの作成
      */
-     Editor G = new EditableGraph();
 
     /*
      * ノードの作成
@@ -148,8 +145,6 @@ public class Tester {
        * 親ノードがある場合エッジを追加する。
        */
       if(tree.containsKey(parent)){
-        listVertex parentNode = tree.get(parent);
-        listVertex childNode = tree.get(SD.getFullpath());
 //        Edge edge = new Edge(parentNode, childNode);
        // G.addEdge(edge);
       }

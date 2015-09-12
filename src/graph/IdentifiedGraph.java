@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Test;
-
 public class IdentifiedGraph<T>  implements ElementalAnalyzer<T> {
   private Map<Vertex, T> valueMap;
   private Map<T, Vertex> vertexMap;

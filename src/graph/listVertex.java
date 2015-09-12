@@ -5,7 +5,6 @@ import java.util.List;
 
 public class listVertex{
   private String Name;
-  private listVertex Parent;
   private List<listVertex> Children;
 
   public listVertex(){
@@ -38,7 +37,6 @@ public class listVertex{
 
   private static void connectVertex(listVertex Parent, listVertex Child){
     Parent.Children.add(Child);
-    Child.Parent = Parent;
   }
 }
 

@@ -1,7 +1,6 @@
 package graph;
 
 import for_now.Utilities;
-import graph.Edge.Direction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,7 +31,7 @@ public class SimpleElementalAnalyzer implements ElementalAnalyzer<Vertex> {
     }
     return counter;
   }
-  
+
   @Override
   public Set<Vertex> collectNeighborVertex(Vertex vertex) {
     Set<Vertex> vertices = new HashSet<Vertex>();

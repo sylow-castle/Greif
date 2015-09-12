@@ -22,37 +22,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javafx.event.ActionEvent;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.control.Cell;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TreeCell;
-import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeView;
-import javafx.scene.control.cell.TextFieldTreeCell;
-import javafx.util.Callback;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 
 import java.io.IOException;
 
@@ -184,12 +162,6 @@ public class TableSchema {
     return this.tableMap.get(tableName);
   }
 
-  private SimpleStringTable loadTableData(ResultSet tableData) {
-    SimpleStringTable result = new SimpleStringTable();
-    loadTableData(result, tableData);
-    return result;
-  }
-
   private void loadTableData(SimpleStringTable table, ResultSet tableData) {
     try {
       //列の設定
@@ -225,8 +197,6 @@ public class TableSchema {
       FXMLLoader loader = new FXMLLoader(url);
       Tab tab = loader.<Tab> load();
 
-      Map<String, String> tabName = getTabNameMap();
-
       //タブの設定
       tab.setId(tableId);
       tab.setText(tableId);
@@ -246,13 +216,6 @@ public class TableSchema {
       e.printStackTrace();
       return null;
     }
-  }
-
-  private Map<String, String> getTabNameMap() {
-    Map<String, String> tabNameMap = new HashMap<String, String>();
-    tabNameMap.put("vertex", "頂点");
-    tabNameMap.put("edge", "辺");
-    return tabNameMap;
   }
 
   public TabPane getSchemaView() {
@@ -367,6 +330,7 @@ public class TableSchema {
       Map<String, SimpleStringTable> tables = new HashMap<String, SimpleStringTable>();
       for (String tableName : this.tableNames) {
         //テーブルの作成
+        @SuppressWarnings("unchecked")
         TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
         SimpleStringTable table = this.tableMap.get(tableName);
         table.removeAllRecords();
