@@ -1,6 +1,9 @@
 package ui;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import table.SimpleStringTable;
@@ -9,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.ContentDisplay;
@@ -21,6 +25,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
+import javafx.beans.property.MapProperty;
+import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
@@ -40,8 +46,7 @@ public class DefaultTableTabController implements Initializable {
   @FXML
   public TableView<DefaultRow> table;
 
-  @FXML
-  public SimpleStringTable modelTable;
+  private SimpleStringTable modelTable;
 
   public DefaultRow defaultValue;
 
@@ -112,22 +117,67 @@ public class DefaultTableTabController implements Initializable {
     table.getColumns().add(addColumn);
   }
 
-  public <T> ListChangeListener<T> getAddColumnListener() {
-    ListChangeListener<T> listener = new ListChangeListener<T>() {
+  public <T> SetChangeListener<T> getAddColumnListener() {
+    SetChangeListener<T> listener = new SetChangeListener<T>() {
       @Override
-      public void onChanged(ListChangeListener.Change<? extends T> list) {
-        while (list.next()) {
-          if (list.wasAdded() && !(list.getAddedSubList().isEmpty())) {
-            for (T columnName : list.getAddedSubList()) {
-              addColumn(columnName.toString());
-            }
+      public void onChanged(SetChangeListener.Change<? extends T> change) {
+        if(change.wasAdded()) {
+          String columnName = change.getElementAdded().toString();
+          addColumn(columnName);
+          for(DefaultRow row : table.getItems()) {
+            row.getValueMap().put(columnName, new SimpleStringProperty("new value"));
           }
         }
-        // TODO 削除時の動作もつけたい
+
+        if(change.wasRemoved()) {
+          String columnName = change.getElementRemoved().toString();
+          for(TableColumn<DefaultRow, ?> column : new ArrayList<>(table.getColumns())) {
+            if(null != column && column.getId() == columnName) {
+              table.getColumns().remove(column);
+            }
+          }
+
+          for(DefaultRow row : table.getItems()) {
+            row.getValueMap().remove(columnName);
+          }
+
+        }
       }
     };
 
     return listener;
+  }
+
+  public void setTableModel(SimpleStringTable model) {
+    this.modelTable = model;
+
+    SetChangeListener<String> listener = this.<String>getAddColumnListener();
+    modelTable.addColumnListener(listener);
+
+    modelTable.addRecordsListener(
+        new ListChangeListener<Map<String, String>>() {
+          @Override
+          public void onChanged(ListChangeListener.Change<? extends Map<String, String>> change) {
+            while (change.next()) {
+              for (Map<String, String> record : change.getAddedSubList()) {
+                //rowに入れるデータの組立て
+                Map<String, StringProperty> rowData = new HashMap<>();
+                for (String column : modelTable.getColumns()) {
+                  StringProperty value = new SimpleStringProperty(record.get(column));
+                  rowData.put(column, value);
+                }
+
+                //row自身の組立て
+                DefaultRow row = new DefaultRow();
+                row.setValueMap(FXCollections.observableMap(rowData));
+
+                //追加操作
+                table.getItems().add(row);
+              }
+            }
+          }
+        }
+    );
   }
 
 }

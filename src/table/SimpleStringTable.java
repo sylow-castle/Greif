@@ -5,23 +5,65 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import ui.DefaultRow;
+import javafx.beans.Observable;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import javafx.util.Builder;
 
 public class SimpleStringTable implements Builder<SimpleStringTable> {
-  private SortedSet<String> columns;
+  private StringProperty  name;
+  private ObservableSet<String> columns;
   private ObservableList<Map<String, String>> records;
 
   public SimpleStringTable() {
-    this.columns = new TreeSet<String>();
+    this(null);
+  }
+
+  public SimpleStringTable(String name) {
+    this.name = new SimpleStringProperty(name);
+    this.columns = FXCollections.<String>observableSet();
     this.records = FXCollections.<Map<String, String>>observableArrayList();
   }
+
+  public String getName() {
+    return name.get();
+  }
+
+  public void setName(String value) {
+    name.set(value);
+  }
+
+  public StringProperty NameProperty() {
+    return name;
+  }
+
+  public void addColumnListener(SetChangeListener<? super String> listener) {
+    columns.addListener(listener);
+   }
+
+  public void removeColumnListener(SetChangeListener<? super String> listener) {
+    columns.removeListener(listener);
+   }
+
+  public void addRecordsListener(ListChangeListener<? super Map<String, String>> listener) {
+    records.addListener(listener);
+   }
+
+  public void removeRecordsListener(ListChangeListener<? super Map<String, String>> listener) {
+    records.removeListener(listener);
+   }
+
+
 
   public void addColumn(String column) {
     columns.add(column);
@@ -70,4 +112,6 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
   public SimpleStringTable build() {
     return this;
   }
+
+
 }

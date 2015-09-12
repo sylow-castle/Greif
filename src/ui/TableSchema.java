@@ -26,6 +26,7 @@ import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.control.Cell;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -43,6 +44,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -64,14 +69,12 @@ public class TableSchema {
 
   //頂点、辺等のテーブル名をキー
   //テーブルが持つ属性の名前一覧を値としたMap。
-  private ObservableList<String> tableNames;
-  private Map<String, SimpleStringTable> tables;
-  private Map<String, String> columnToAttributeId;
-  private Map<String, TableView<DefaultRow>> tableViews;
+  private final ObservableSet<String> tableNames;
+  private final ObservableSet<SimpleStringTable> tables;
+  private final Map<String, SimpleStringTable> tableMap;
+  private final Map<String, TableView<DefaultRow>> tableViews;
 
-  //テーブルと列の管理を行う
-  private TreeView<String> tableManager;
-  private Map<TreeItem<String> , TableObject> objectMap = new HashMap<>();
+  private Map<String, String> columnToAttributeId;
 
   //定数
   private static final String DOT_WRITE_PATH = "D:\\temp\\dotlang.dot";
@@ -83,69 +86,53 @@ public class TableSchema {
   private static final String START = "start";
   private static final String ID = "id";
 
-  //
-
   public TableSchema(String filePath) throws SQLException, IOException {
-    try {
-      this.filePath = filePath;
-      this.schemaView = new TabPane();
-      this.tables = new HashMap<String, SimpleStringTable>();
-      this.tableViews = new HashMap<String, TableView<DefaultRow>>();
-      this.tableNames = FXCollections.<String> observableArrayList();
-      this.columnToAttributeId = createDefaultAttributeMap();
-      this.tableManager = new TreeView<>();
+    this.filePath = filePath;
+    this.schemaView = new TabPane();
 
+    this.tableNames = FXCollections.<String> observableSet();
+    this.tables = FXCollections.<SimpleStringTable> observableSet();
+    this.tableMap = new HashMap<String, SimpleStringTable>();
 
-      //テーブルマネージャの設定
-      tableManager.setCellFactory(new Callback<TreeView<String>, TreeCell<String>>() {
-        @Override
-        public TreeCell<String> call(TreeView<String> param) {
+    this.tableViews = new HashMap<String, TableView<DefaultRow>>();
 
-          TreeCell<String> returnCell;
-          returnCell = TextFieldTreeCell.forTreeView().call(param);
+    this.columnToAttributeId = createDefaultAttributeMap();
 
-          //アイテム追加後に設定しなおすこと
-          ObjectProperty<ContextMenu> contextMenuProp = returnCell.contextMenuProperty();
-          ChangeListener<? super TreeItem<String>> listener = new ChangeListener<TreeItem<String>>() {
-            @Override
-            public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
-                TreeItem<String> newValue) {
-                if(null != newValue){
-                  contextMenuProp.set(createContextMenu(objectMap.get(newValue)));
-                }
-            }
-          };
-          returnCell.treeItemProperty().addListener(listener );
-          return returnCell;
+    //テーブル変更時の動作
+    tables.addListener(new SetChangeListener<SimpleStringTable>() {
+      @Override
+      public void onChanged(SetChangeListener.Change<? extends SimpleStringTable> change) {
+        if (change.wasAdded()) {
+          SimpleStringTable table = change.getElementAdded();
+          //tableNames、tableMapとの整合性を取る
+          tableMap.put(table.getName(), table);
+          tableNames.add(table.getName());
+          tableViews.put(table.getName(), buildTableView(table.getName(), table));
         }
-      });
 
-      tableManager.setId("TreeView");
-      TreeItem<String> rootItem = new TreeItem<String>();
-      rootItem.setValue("Tables");
-      rootItem.setExpanded(true);
-      this.objectMap.put(rootItem, TableObject.ROOT);
-      tableManager.setRoot(rootItem);
-
-
-      this.tableNames.addListener(new ListChangeListener<String>() {
-        @Override
-        public void onChanged(ListChangeListener.Change<? extends String> change) {
-          while (change.next()) {
-            for (String tableName : change.getAddedSubList()) {
-              TreeItem<String> item = new TreeItem<String>(tableName);
-              item.setExpanded(true);
-              rootItem.getChildren().add(item);
-              objectMap.put(item, TableObject.TABLE);
+        if (change.wasRemoved()) {
+          String name = change.getElementRemoved().getName();
+          Tab removeTab = null;
+          for(Tab tab : schemaView.getTabs()) {
+            if(null != tab.getId() && tab.getId().equals(name)){
+              removeTab = tab;
+              break;
             }
           }
+          schemaView.getTabs().remove(removeTab);
+          tableMap.remove(name);
+          tableNames.remove(name);
         }
-      });
+      }
+    });
 
-      Tab managerTab = new Tab("テーブル一覧");
-      managerTab.setContent(tableManager);
-      this.schemaView.getTabs().add(managerTab);
+    //見てくれ部分
+    Node content = (new TableManager(this)).getView();
+    Tab managerTab = new Tab("テーブル一覧");
+    managerTab.setContent(content);
+    this.schemaView.getTabs().add(managerTab);
 
+    try {
       //テーブルの追加
       Connection dbFile = DbFileLoader.loadDbFile(filePath);
       Statement fileStatement = dbFile.createStatement();
@@ -153,14 +140,12 @@ public class TableSchema {
 
       while (tables.next()) {
         String tableName = tables.getString("name");
-        this.tableNames.add(tableName);
+        this.addTable(tableName);
       }
 
       for (String tableName : this.tableNames) {
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
-        SimpleStringTable table = buildSimpleTable(values);
-        this.tables.put(tableName, table);
-        this.tableViews.put(tableName, buildTableView(tableName, table));
+        loadTableData(tableMap.get(tableName), values);
       }
 
       dbFile.close();
@@ -169,36 +154,6 @@ public class TableSchema {
       e.printStackTrace();
     }
   }
-
-
-  ContextMenu createContextMenu(TableObject type) {
-    ContextMenu menu = new ContextMenu();
-    switch (type) {
-    case ROOT :
-      MenuItem item = new MenuItem("新しい表を追加");
-      item.setOnAction((ActionEvent e) -> {
-        this.tableNames.add("newTable_" + TableObject.count);
-        TableObject.count++;
-        return;
-      });
-      menu.getItems().add(item);
-
-      break;
-
-    case TABLE:
-      menu.getItems().add(new MenuItem("新しい表を追加"));
-      menu.getItems().add(new MenuItem("この表を削除"));
-      menu.getItems().add(new MenuItem("新しい列を追加"));
-      break;
-
-    case COLUMN:
-      menu.getItems().add(new MenuItem("新しい列を追加"));
-      menu.getItems().add(new MenuItem("この列を削除"));
-      break;
-    }
-    return menu;
-  }
-
   enum TableObject {
     ROOT,
     TABLE,
@@ -207,10 +162,35 @@ public class TableSchema {
     public static int count = 0;
   }
 
+  public void addTable(String name) {
+    tables.add(new SimpleStringTable(name));
+  }
 
-  private SimpleStringTable buildSimpleTable(ResultSet tableData) {
-    SimpleStringTable table = new SimpleStringTable();
+  public void removeTable(String name) {
+    if(tableNames.contains(name)) {
+      tables.remove(tableMap.get(name));
+    }
+  }
 
+  public void addTablesListener(SetChangeListener<? super String> listener) {
+    tableNames.addListener(listener);
+  }
+
+  public void removeTablesListener(SetChangeListener<? super String> listener) {
+    tableNames.removeListener(listener);
+  }
+
+  public SimpleStringTable getTable(String tableName) {
+    return this.tableMap.get(tableName);
+  }
+
+  private SimpleStringTable loadTableData(ResultSet tableData) {
+    SimpleStringTable result = new SimpleStringTable();
+    loadTableData(result, tableData);
+    return result;
+  }
+
+  private void loadTableData(SimpleStringTable table, ResultSet tableData) {
     try {
       //列の設定
       //あわせて列名のListの作成とColumnの追加
@@ -223,33 +203,33 @@ public class TableSchema {
       //行の設定
       while (tableData.next()) {
         Map<String, String> record = new HashMap<String, String>();
-        table.addRecord(record);
 
         //行の値の組立て
         for (String columnName : table.getColumns()) {
           record.put(columnName, tableData.getString(columnName));
         }
+
+        table.addRecord(record);
+
       }
     } catch (SQLException e) {
       this.schemaView = null;
       e.printStackTrace();
     }
-
-    return table;
   }
 
   private TableView<DefaultRow> buildTableView(String tableId, SimpleStringTable table) {
     //シーングラフへのTab追加
     try {
       URL url = ui.view.fxmlRoot.class.getResource("DefaultTableTab.fxml");
-      System.out.println(url.toString());
       FXMLLoader loader = new FXMLLoader(url);
       Tab tab = loader.<Tab> load();
 
       Map<String, String> tabName = getTabNameMap();
 
       //タブの設定
-      tab.setText(tabName.get(tableId));
+      tab.setId(tableId);
+      tab.setText(tableId);
       tab.getContent().setId(tableId);
       schemaView.getTabs().add(tab);
 
@@ -257,47 +237,8 @@ public class TableSchema {
       TableView<DefaultRow> view = (TableView<DefaultRow>) tab.getContent().lookup("#table");
       DefaultTableTabController controller = loader.<DefaultTableTabController> getController();
 
-      //列の設定
-      ObservableList<String> columns = FXCollections.<String> observableArrayList();
-
-      TreeItem<String> tableItem = this.sertchTable(tableId);
-      columns.addListener(new ListChangeListener<String>() {
-        @Override
-        public void onChanged(ListChangeListener.Change<? extends String> c) {
-          if (null == tableItem) {
-            return;
-          }
-
-          while (c.next()) {
-            for (String columnName : c.getAddedSubList()) {
-              TreeItem<String> item = new TreeItem<String>(columnName);
-              tableItem.getChildren().add(item);
-              objectMap.put(item, TableObject.COLUMN);
-            }
-          }
-        }
-      });
-
-      columns.addListener(controller.<String> getAddColumnListener());
-      for (String columnName : table.getColumns()) {
-        columns.add(columnName);
-      }
-
-      //行の設定
-      for (Map<String, String> record : table.getAllRecords()) {
-        DefaultRow row = new DefaultRow();
-        view.getItems().add(row);
-
-        //追加するDataRow用のvalueMapの組み立て
-        ObservableMap<String, StringProperty> valueMap = FXCollections.<String, StringProperty> observableHashMap();
-        row.setValueMap(valueMap);
-
-        //valueMapの組立て
-        for (String columnName : table.getColumns()) {
-          SimpleStringProperty value = new SimpleStringProperty(record.get(columnName));
-          valueMap.put(columnName, value);
-        }
-      }
+      //テーブルの元データを設定
+      controller.setTableModel(table);
 
       return view;
     } catch (IOException e) {
@@ -307,21 +248,10 @@ public class TableSchema {
     }
   }
 
-  private TreeItem<String> sertchTable(String name) {
-    TreeItem<String> result = null;
-    for (TreeItem<String> item : this.tableManager.getRoot().getChildren()) {
-      if (item.getValue().equals(name)) {
-        result = item;
-      }
-    }
-    return result;
-  }
-
   private Map<String, String> getTabNameMap() {
     Map<String, String> tabNameMap = new HashMap<String, String>();
     tabNameMap.put("vertex", "頂点");
     tabNameMap.put("edge", "辺");
-
     return tabNameMap;
   }
 
@@ -371,6 +301,7 @@ public class TableSchema {
     vertexInfo = new HashMap<String, DefaultRow>();
     edgeInfo = new HashMap<Edge, DefaultRow>();
 
+    //グラフのトポロジーを設定
     //頂点の追加
     for (DefaultRow vertex : this.getVerticesAsList()) {
       String key = vertex.getValueMap().get(ID).get();
@@ -437,7 +368,7 @@ public class TableSchema {
       for (String tableName : this.tableNames) {
         //テーブルの作成
         TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
-        SimpleStringTable table = this.tables.get(tableName);
+        SimpleStringTable table = this.tableMap.get(tableName);
         table.removeAllRecords();
         for (DefaultRow row : view.getItems()) {
           table.addRecord(row.degenerateRow());
