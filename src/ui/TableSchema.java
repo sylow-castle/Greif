@@ -55,7 +55,7 @@ public class TableSchema {
   private Map<String, String> columnToAttributeId;
 
   //定数
-  private static final String DOT_WRITE_PATH = "D:\\temp\\dotlang.dot";
+  private static final String DOT_WRITE_PATH = runner.Main.prop.getProperty("DOTFilePath");
   private static final String LABEL = "label";
   private static final String COLOR = "color";
   private static final String SHAPE = "shape";

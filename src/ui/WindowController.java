@@ -150,7 +150,7 @@ public class WindowController implements Initializable {
     execGraphViz();
 
     FileSystem fs = FileSystems.getDefault();
-    Path path = fs.getPath("D:/temp/sample.png");
+    Path path = fs.getPath(PNG_FILE_PATH);
     Image im = new Image(path.toFile().toURI().toString());
     this.imView.setImage(im);
   }

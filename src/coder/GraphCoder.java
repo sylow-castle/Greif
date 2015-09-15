@@ -26,7 +26,7 @@ public class GraphCoder implements DotWriter {
   public List<String> writeDot() {
     ArrayList<String> dotLang = new ArrayList<String>();
     //利用する日本語フォントの設定
-    String FONTNAME = "meiryo";
+    String FONTNAME = runner.Main.prop.getProperty("FONTNAME");
 
     //プレフィクス
     dotLang.add("digraph {");
