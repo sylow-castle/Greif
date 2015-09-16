@@ -9,6 +9,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -30,6 +31,7 @@ public class TableManager {
   public TableManager(TableSchema schema) {
     this.schema = schema;
     this.view = new TreeView<String>();
+    this.view.setEditable(true);
     this.objectMap = new HashMap<>();
 
     view.setCellFactory(new Callback<TreeView<String>, TreeCell<String>>() {
@@ -37,18 +39,28 @@ public class TableManager {
       public TreeCell<String> call(TreeView<String> param) {
         TreeCell<String> returnCell;
         returnCell = TextFieldTreeCell.forTreeView().call(param);
+        returnCell.setEditable(true);
 
-        ObjectProperty<ContextMenu> contextMenuProp = returnCell.contextMenuProperty();
         ChangeListener<? super TreeItem<String>> listener = new ChangeListener<TreeItem<String>>() {
           @Override
           public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
               TreeItem<String> newValue) {
               if(null != newValue){
-                contextMenuProp.set(createContextMenu(newValue));
+                returnCell.setContextMenu(createContextMenu(newValue));
+
+                MenuItem edit = new MenuItem("名前を変更");
+                edit.setOnAction(new EventHandler<ActionEvent>() {
+                  @Override
+                  public void handle(ActionEvent arg0) {
+                    param.edit(newValue);
+                  }
+                });
+                returnCell.getContextMenu().getItems().add(edit);
               }
           }
         };
-        returnCell.treeItemProperty().addListener(listener );
+        
+        returnCell.treeItemProperty().addListener(listener);
         return returnCell;
       }
     });
@@ -109,6 +121,9 @@ public class TableManager {
 
   ContextMenu createContextMenu(TreeItem<String> item) {
     ContextMenu menu = new ContextMenu();
+
+
+
 
     MenuItem addTable = new MenuItem("新しい表を追加");
     addTable.setOnAction((ActionEvent e) -> {
