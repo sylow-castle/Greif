@@ -35,6 +35,7 @@ import javafx.beans.property.StringProperty;
 import java.io.IOException;
 
 import runner.TextFileWriter;
+import table.Column;
 import table.SimpleStringTable;
 import database.DbFileLoader;
 
@@ -174,11 +175,11 @@ public class TableSchema {
 
       //行の設定
       while (tableData.next()) {
-        Map<String, String> record = new HashMap<String, String>();
+        Map<Column, String> record = table.getTemplateRecord();
 
         //行の値の組立て
-        for (String columnName : table.getColumns()) {
-          record.put(columnName, tableData.getString(columnName));
+        for (Column column: record.keySet()) {
+          record.put(column, tableData.getString(column.getName()));
         }
 
         table.addRecord(record);
@@ -326,29 +327,14 @@ public class TableSchema {
       Statement stmt = dbFile.createStatement();
       stmt.addBatch("begin;");
 
-      //テーブルの作成
-      Map<String, SimpleStringTable> tables = new HashMap<String, SimpleStringTable>();
-      for (String tableName : this.tableNames) {
-        //テーブルの作成
-        @SuppressWarnings("unchecked")
-        TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
-        SimpleStringTable table = this.tableMap.get(tableName);
-        table.removeAllRecords();
-        for (DefaultRow row : view.getItems()) {
-          table.addRecord(row.degenerateRow());
-        }
-
-        tables.put(tableName, table);
-      }
-
-      //create文の作成
-      for (String tableName : this.tableNames) {
+     //create文の作成
+      for (SimpleStringTable table : this.tables) {
         //create文作成
         String sql = "";
-        sql = "create table " + tableName + " ";
+        sql = "create table " + table.getName() + " ";
 
         List<String> columns = new ArrayList<String>();
-        for (String columName : tables.get(tableName).getColumns()) {
+        for (String columName : table.getColumns()) {
           columns.add(columName + " text");
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
@@ -356,14 +342,22 @@ public class TableSchema {
       }
 
       //insert文の作成
-      for (String tableName : this.tableNames) {
+      for (SimpleStringTable table : this.tables) {
         String sql = "";
 
-        SimpleStringTable table = tables.get(tableName);
         //テーブルのinsert文
-        for (Map<String, String> record : table.getAllRecords()) {
+        List<Map<String, String>> records = new ArrayList<>();
+        for (Map<Column, String> record : table.getAllRecords()) {
+          Map<String, String> row = new HashMap<>();
+          for(Column column : record.keySet()) {
+            row.put(column.getName(), record.get(column));
+          }
+          records.add(row);
+        }
+
+        for (Map<String, String> record : records) {
           List<String> columns = table.getColumns();
-          sql = "insert into " + tableName + " ";
+          sql = "insert into " + table.getName() + " ";
           sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ") ";
 
           //代入用の値の文字列化

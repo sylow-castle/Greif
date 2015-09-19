@@ -2,6 +2,7 @@ package ui;
 import java.util.HashMap;
 import java.util.Map;
 
+import table.Column;
 import table.SimpleStringTable;
 import ui.TableSchema.TableObject;
 import javafx.beans.property.ObjectProperty;
@@ -59,7 +60,7 @@ public class TableManager {
               }
           }
         };
-        
+
         returnCell.treeItemProperty().addListener(listener);
         return returnCell;
       }
@@ -72,28 +73,29 @@ public class TableManager {
     this.objectMap.put(rootItem, TableObject.ROOT);
 
     //テーブル追加・削除時の動作設
-    schema.addTablesListener(new ObjectTreeChangeListener(rootItem, TableObject.TABLE));
+    schema.addTablesListener(new TableChangeListener(rootItem, TableObject.TABLE));
   }
 
 
-  void addTableObject(TreeItem<String> parent, String element, TableObject type) {
-    TreeItem<String> addItem;
-    addItem = new TreeItem<String>(element);
+  void addTableObject(TreeItem<String> parent, TreeItem<String> addItem, String element, TableObject type) {
     addItem.setExpanded(true);
+    addItem.setValue(element);
     parent.getChildren().add(addItem);
     objectMap.put(addItem, type);
 
     if(type.equals(TableObject.TABLE)) {
       SimpleStringTable addedTable = schema.getTable(addItem.getValue());
-      addedTable.addColumnListener(new ObjectTreeChangeListener(addItem, TableObject.COLUMN));
+      addedTable.addColumnListener(new ColumnsChangeListener(addItem));
     }
+
+
   }
 
-  private class ObjectTreeChangeListener implements SetChangeListener<String> {
+  private class TableChangeListener implements SetChangeListener<String> {
     private TreeItem<String> item;
     private TableObject childType;
 
-    ObjectTreeChangeListener(TreeItem<String> item, TableObject childType) {
+    TableChangeListener(TreeItem<String> item, TableObject childType) {
       this.item = item;
       this.childType = childType;
     }
@@ -101,7 +103,7 @@ public class TableManager {
     @Override
     public void onChanged(SetChangeListener.Change<? extends String> change) {
       if(change.wasAdded()) {
-        addTableObject(item, change.getElementAdded(), childType);
+        addTableObject(item, new TreeItem<String>(), change.getElementAdded(), childType);
       }
 
       if(change.wasRemoved()) {
@@ -113,6 +115,65 @@ public class TableManager {
           }
         }
 
+        item.getChildren().remove(removeItem);
+        objectMap.remove(removeItem);
+      }
+    }
+  }
+
+  private class ColumnsChangeListener implements SetChangeListener<Column> {
+    private TreeItem<String> item;
+    private TableObject childType = TableObject.COLUMN;
+
+    ColumnsChangeListener(TreeItem<String> item) {
+      this.item = item;
+    }
+
+    @Override
+    public void onChanged(SetChangeListener.Change<? extends Column> change) {
+      //TODO 削除
+      System.out.println("Colmn listener was called");
+      if(change.wasAdded()) {
+        Column addedColumn = change.getElementAdded();
+        TreeItem<String> columnItem = new TreeItem<String>();
+        addTableObject(item, columnItem, addedColumn.getName(), childType);
+
+        //ColumnにTreeItemの名前を変えるリスナーを設定
+        //ColumnからTreeItemへの変化は無条件で起こす。
+        addedColumn.nameProperty().addListener(new ChangeListener<String>() {
+          @Override
+          public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+            //TODO 削除
+            System.out.println("カラム ─通知→ アイテム");
+            columnItem.setValue(newValue);
+          }
+        });
+
+        //TreeItemにColumnの名前を変えるリスナーを設定。
+        //ただしTreeItemからColumnへの変化は二つが異なっている時のみ
+        ChangeListener<? super String> listener;
+        listener = new ChangeListener<String> () {
+          @Override
+          public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+            //TODO 削除
+            System.out.println("アイテム ─通知→ カラム");
+            if(!addedColumn.getName().equals(newValue)) {
+              System.out.println("valueが変更されました");
+              addedColumn.setName(newValue);
+            }
+          }
+        };
+        columnItem.valueProperty().addListener(listener);
+      }
+
+      if(change.wasRemoved()) {
+        TreeItem<String> removeItem = null;
+        for(TreeItem<String> item : item.getChildren()) {
+          if(item.getValue().equals(change.getElementRemoved().getName())) {
+            removeItem = item;
+            break;
+          }
+        }
         item.getChildren().remove(removeItem);
         objectMap.remove(removeItem);
       }
@@ -176,5 +237,6 @@ public class TableManager {
     }
     return menu;
   }
+
 
 }
