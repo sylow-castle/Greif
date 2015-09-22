@@ -97,7 +97,6 @@ public class DefaultTableTabController implements Initializable {
     String columnName = column.getName();
     TableColumn<DefaultRow, String> addColumn = new TableColumn<DefaultRow, String>();
     addColumn.setEditable(true);
-//    addColumn.setText(columnName);
     addColumn.textProperty().bind(column.nameProperty());
     addColumn.setId(columnName);
     addColumn.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -111,37 +110,6 @@ public class DefaultTableTabController implements Initializable {
         );
     table.getColumns().add(addColumn);
   }
-/*
-  public <T> SetChangeListener<T> getAddColumnListener() {
-    SetChangeListener<T> listener = new SetChangeListener<T>() {
-      @Override
-      public void onChanged(SetChangeListener.Change<? extends T> change) {
-        if(change.wasAdded()) {
-          String columnName = change.getElementAdded().toString();
-          addColumn(columnName);
-          for(DefaultRow row : table.getItems()) {
-            row.getValueMap().put(columnName, new SimpleStringProperty("new value"));
-          }
-        }
-
-        if(change.wasRemoved()) {
-          String columnName = change.getElementRemoved().toString();
-          for(TableColumn<DefaultRow, ?> column : new ArrayList<>(table.getColumns())) {
-            if(null != column && column.getId() == columnName) {
-              table.getColumns().remove(column);
-            }
-          }
-
-          for(DefaultRow row : table.getItems()) {
-            row.getValueMap().remove(columnName);
-          }
-
-        }
-      }
-    };
-    return listener;
-  }
-*/
 
   public void setTableModel(SimpleStringTable model) {
     this.modelTable = model;

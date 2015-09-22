@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -30,6 +31,7 @@ import javafx.scene.control.TabPane;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 import java.io.IOException;
@@ -48,7 +50,7 @@ public class TableSchema {
 
   //頂点、辺等のテーブル名をキー
   //テーブルが持つ属性の名前一覧を値としたMap。
-  private final ObservableSet<String> tableNames;
+  private final ObservableSet<StringProperty> tableNames;
   private final ObservableSet<SimpleStringTable> tables;
   private final Map<String, SimpleStringTable> tableMap;
   private final Map<String, TableView<DefaultRow>> tableViews;
@@ -69,7 +71,7 @@ public class TableSchema {
     this.filePath = filePath;
     this.schemaView = new TabPane();
 
-    this.tableNames = FXCollections.<String> observableSet();
+    this.tableNames = FXCollections.<StringProperty> observableSet();
     this.tables = FXCollections.<SimpleStringTable> observableSet();
     this.tableMap = new HashMap<String, SimpleStringTable>();
 
@@ -85,7 +87,7 @@ public class TableSchema {
           SimpleStringTable table = change.getElementAdded();
           //tableNames、tableMapとの整合性を取る
           tableMap.put(table.getName(), table);
-          tableNames.add(table.getName());
+          tableNames.add(new SimpleStringProperty(table.getName()));
           tableViews.put(table.getName(), buildTableView(table.getName(), table));
         }
 
@@ -122,7 +124,8 @@ public class TableSchema {
         this.addTable(tableName);
       }
 
-      for (String tableName : this.tableNames) {
+      for (StringProperty tableNameProp : this.tableNames) {
+        String tableName = tableNameProp.get();
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
         loadTableData(tableMap.get(tableName), values);
       }
@@ -151,11 +154,11 @@ public class TableSchema {
     }
   }
 
-  public void addTablesListener(SetChangeListener<? super String> listener) {
+  public void addTablesListener(SetChangeListener<? super StringProperty> listener) {
     tableNames.addListener(listener);
   }
 
-  public void removeTablesListener(SetChangeListener<? super String> listener) {
+  public void removeTablesListener(SetChangeListener<? super StringProperty> listener) {
     tableNames.removeListener(listener);
   }
 
@@ -200,7 +203,7 @@ public class TableSchema {
 
       //タブの設定
       tab.setId(tableId);
-      tab.setText(tableId);
+      tab.textProperty().bind(table.NameProperty());
       tab.getContent().setId(tableId);
       schemaView.getTabs().add(tab);
 
@@ -286,6 +289,7 @@ public class TableSchema {
 
     //Dot言語の構成
     List<String> givenColumnName = new ArrayList<String>();
+
     givenColumnName.add(LABEL);
     givenColumnName.add(SHAPE);
     givenColumnName.add(COLOR);
