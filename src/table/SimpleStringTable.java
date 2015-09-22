@@ -58,8 +58,6 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
     records.removeListener(listener);
    }
 
-
-
   public void addColumn(String column) {
     columns.add(new Column(this, column));
   }
@@ -72,6 +70,18 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
 
     return result;
   }
+
+  public Column getColumn(String columnName) {
+    Column result = null;
+    for(Column column : this.columns) {
+      if(column.getName().equals(columnName)) {
+        result = column;
+        break;
+      }
+    }
+    return result;
+  }
+
 
   public void removeColumn(String name) {
     columns.remove(

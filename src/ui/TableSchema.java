@@ -1,6 +1,5 @@
 package ui;
 
-import graph.Edge;
 import graph.IdentifiedGraph;
 
 import java.net.URL;
@@ -54,18 +53,11 @@ public class TableSchema {
   private final ObservableSet<SimpleStringTable> tables;
   private final Map<String, SimpleStringTable> tableMap;
   private final Map<String, TableView<DefaultRow>> tableViews;
-
-  private Map<String, String> columnToAttributeId;
+  private SimpleStringTable vertexTable;
+  private SimpleStringTable edgeTable;
 
   //定数
   private static final String DOT_WRITE_PATH = runner.Main.prop.getProperty("DOTFilePath");
-  private static final String LABEL = "label";
-  private static final String COLOR = "color";
-  private static final String SHAPE = "shape";
-  private static final String STYLE = "style";
-  private static final String END = "end";
-  private static final String START = "start";
-  private static final String ID = "id";
 
   public TableSchema(String filePath) throws SQLException, IOException {
     this.filePath = filePath;
@@ -76,8 +68,6 @@ public class TableSchema {
     this.tableMap = new HashMap<String, SimpleStringTable>();
 
     this.tableViews = new HashMap<String, TableView<DefaultRow>>();
-
-    this.columnToAttributeId = createDefaultAttributeMap();
 
     //テーブル変更時の動作
     tables.addListener(new SetChangeListener<SimpleStringTable>() {
@@ -130,6 +120,18 @@ public class TableSchema {
         loadTableData(tableMap.get(tableName), values);
       }
 
+
+      Set<String> names =
+          this.tableNames.stream()
+          .map(tbl -> tbl.get())
+          .collect(Collectors.toSet());
+      if(names.contains("vertex")) {
+        this.vertexTable = this.tableMap.get("vertex");
+      }
+
+      if(names.contains("edge")) {
+        this.edgeTable = this.tableMap.get("edge");
+      }
       dbFile.close();
     } catch (SQLException e) {
       this.schemaView = null;
@@ -226,98 +228,47 @@ public class TableSchema {
     return schemaView;
   }
 
-  public List<DefaultRow> getVerticesAsList() {
-    List<DefaultRow> list = new ArrayList<DefaultRow>();
-    @SuppressWarnings("unchecked")
-    TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#vertex").lookup("#table");
-    for (DefaultRow row : table.getItems()) {
-      list.add(row);
-    }
-    return list;
+  public List<Map<Column, String>> getVerticesAsList() {
+    return this.vertexTable.getAllRecords();
   }
 
-  public List<DefaultRow> getEdgesAsList() {
-    List<DefaultRow> list = new ArrayList<DefaultRow>();
-    @SuppressWarnings("unchecked")
-    TableView<DefaultRow> table = (TableView<DefaultRow>) schemaView.lookup("#edge").lookup("#table");
-    for (DefaultRow row : table.getItems()) {
-      list.add(row);
-    }
-    return list;
-  }
-
-  private static Map<String, String> createDefaultAttributeMap() {
-    Map<String, String> defaultAttributeMap = new HashMap<String, String>();
-    defaultAttributeMap.put(ID, ID);
-    defaultAttributeMap.put(LABEL, LABEL);
-    defaultAttributeMap.put(START, START);
-    defaultAttributeMap.put(END, END);
-    defaultAttributeMap.put(STYLE, STYLE);
-    defaultAttributeMap.put(SHAPE, SHAPE);
-    defaultAttributeMap.put(COLOR, COLOR);
-
-    return defaultAttributeMap;
+  public List<Map<Column, String>> getEdgesAsList() {
+    return this.edgeTable.getAllRecords();
   }
 
   public void export() {
     IdentifiedGraph<String> baseGraph;
-    Map<String, DefaultRow> vertexInfo;
-    Map<Edge, DefaultRow> edgeInfo;
-
     baseGraph = new IdentifiedGraph<String>();
-    vertexInfo = new HashMap<String, DefaultRow>();
-    edgeInfo = new HashMap<Edge, DefaultRow>();
 
-    //グラフのトポロジーを設定
+    //グラフを設定
     //頂点の追加
-    for (DefaultRow vertex : this.getVerticesAsList()) {
-      String key = vertex.getValueMap().get(ID).get();
-      baseGraph.addVertex(key);
-      vertexInfo.put(key, vertex);
+    Set<VertexCoder> VCoder = new HashSet<VertexCoder>();
+    for (Map<Column, String> vertex : this.getVerticesAsList()) {
+      String id = vertex.get(this.vertexTable.getColumn("id"));
+      baseGraph.addVertex(id);
+
+      //頂点に属性を付与
+      List<DotAttribute> attrList = new ArrayList<DotAttribute>();
+      for (String columnName : this.vertexTable.getColumns()) {
+        String attrValue = vertex.get(this.vertexTable.getColumn(columnName));
+        attrList.add(new SimpleAttribute(columnName, attrValue));
+      }
+      VCoder.add(new VertexCoder(id, attrList));
     }
 
     //辺の追加
-    for (DefaultRow edge : this.getEdgesAsList()) {
-      String start = edge.getValueMap().get(START).get();
-      String end = edge.getValueMap().get(END).get();
-
-      if (start != null && end != null) {
-        Edge addedEdge = baseGraph.addEdge(start, end);
-        edgeInfo.put(addedEdge, edge);
-      }
-    }
-
-    //Dot言語の構成
-    List<String> givenColumnName = new ArrayList<String>();
-
-    givenColumnName.add(LABEL);
-    givenColumnName.add(SHAPE);
-    givenColumnName.add(COLOR);
-
-    Set<VertexCoder> VCoder = new HashSet<VertexCoder>();
-    //頂点に属性を付与
-    for (String vertex : baseGraph.getAllVertexAsSet()) {
-      List<DotAttribute> attrList = new ArrayList<DotAttribute>();
-      Map<String, StringProperty> row = vertexInfo.get(vertex).getValueMap();
-      for (String columnName : givenColumnName) {
-        attrList.add(new SimpleAttribute(
-            columnToAttributeId.get(columnName), row.get(columnName).get()));
-      }
-
-      VCoder.add(new VertexCoder(vertex, attrList));
-    }
-
-    //辺に属性を付与
     Set<EdgeCoder> ECoder = new HashSet<EdgeCoder>();
-    for (Edge edge : baseGraph.getAllEdgeAsSet()) {
-      String start = baseGraph.valueOf(edge.getStart());
-      String end = baseGraph.valueOf(edge.getEnd());
-      ECoder.add(new EdgeCoder(start, end, true));
+    for (Map<Column, String> edge : this.getEdgesAsList()) {
+      String startId = edge.get(this.edgeTable.getColumn("start"));
+      String endId = edge.get(this.edgeTable.getColumn("end"));
+      if (startId != null && endId != null) {
+        baseGraph.addEdge(startId, endId);
+        ECoder.add(new EdgeCoder(startId, endId, true));
+      }
     }
 
     GraphCoder GCoder = new GraphCoder(VCoder, ECoder);
-
-    //生成したDot言語の書き出し
+    //Dot言語の書き出し
     new TextFileWriter(DOT_WRITE_PATH).writeFile(GCoder.writeDot());
   }
 
