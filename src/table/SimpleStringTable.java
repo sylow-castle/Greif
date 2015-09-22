@@ -82,11 +82,9 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
     return result;
   }
 
-
-  public void removeColumn(String name) {
-    columns.remove(
-        columns.stream()
-          .filter(column -> column.getName().equals(name))
+  public void removeColumn(String columnName) {
+    this.columns.removeAll(columns.stream()
+          .filter(column -> column.getName().equals(columnName))
           .collect(Collectors.toSet())
     );
   }

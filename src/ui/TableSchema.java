@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -92,7 +93,9 @@ public class TableSchema {
           }
           schemaView.getTabs().remove(removeTab);
           tableMap.remove(name);
-          tableNames.remove(name);
+          tableNames.stream()
+            .filter(nameProp -> nameProp.get().equals(name))
+            .forEach(nameProp -> tableNames.remove(nameProp));
         }
       }
     });
@@ -151,9 +154,10 @@ public class TableSchema {
   }
 
   public void removeTable(String name) {
-    if(tableNames.contains(name)) {
-      tables.remove(tableMap.get(name));
-    }
+      this.tables.stream()
+        .filter(table -> table.getName().equals(name))
+        .findFirst()
+        .ifPresent(table -> this.tables.remove(table));
   }
 
   public void addTablesListener(SetChangeListener<? super StringProperty> listener) {
@@ -164,8 +168,10 @@ public class TableSchema {
     tableNames.removeListener(listener);
   }
 
-  public SimpleStringTable getTable(String tableName) {
-    return this.tableMap.get(tableName);
+  public Optional<SimpleStringTable> getTable(String tableName) {
+    return this.tables.stream()
+      .filter(table -> table.getName().equals(tableName))
+      .findFirst();
   }
 
   private void loadTableData(SimpleStringTable table, ResultSet tableData) {
@@ -294,6 +300,8 @@ public class TableSchema {
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
         stmt.addBatch(sql);
+        //TODO 削除
+        System.out.println(sql);
       }
 
       //insert文の作成
@@ -327,6 +335,8 @@ public class TableSchema {
 
           sql = sql + "values (" + for_now.Utilities.serealizeString(values, ", ") + ");";
           stmt.addBatch(sql);
+          //TODO 削除
+          System.out.println(sql);
         }
       }
 

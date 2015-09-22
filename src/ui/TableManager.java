@@ -1,6 +1,8 @@
 package ui;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import table.Column;
 import table.SimpleStringTable;
@@ -24,9 +26,9 @@ import javafx.util.Callback;
 public class TableManager {
   private final TableSchema schema;
   private final TreeView<String> view;
-  private final Map<TreeItem<String> , TableObject> objectMap;
+  private final Map<TreeItem<String>, TableObject> objectMap;
 
-  public Node getView(){
+  public Node getView() {
     return this.view;
   }
 
@@ -47,18 +49,18 @@ public class TableManager {
           @Override
           public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
               TreeItem<String> newValue) {
-              if(null != newValue){
-                returnCell.setContextMenu(createContextMenu(newValue));
+            if (null != newValue) {
+              returnCell.setContextMenu(createContextMenu(newValue));
 
-                MenuItem edit = new MenuItem("名前を変更");
-                edit.setOnAction(new EventHandler<ActionEvent>() {
-                  @Override
-                  public void handle(ActionEvent arg0) {
-                    param.edit(newValue);
-                  }
-                });
-                returnCell.getContextMenu().getItems().add(edit);
-              }
+              MenuItem edit = new MenuItem("名前を変更");
+              edit.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent arg0) {
+                  param.edit(newValue);
+                }
+              });
+              returnCell.getContextMenu().getItems().add(edit);
+            }
           }
         };
 
@@ -77,15 +79,14 @@ public class TableManager {
     schema.addTablesListener(new TableChangeListener(rootItem, TableObject.TABLE));
   }
 
-
   void addTableObject(TreeItem<String> parent, TreeItem<String> addItem, String element, TableObject type) {
     addItem.setExpanded(true);
     addItem.setValue(element);
     parent.getChildren().add(addItem);
     objectMap.put(addItem, type);
 
-    if(type.equals(TableObject.TABLE)) {
-      SimpleStringTable addedTable = schema.getTable(addItem.getValue());
+    if (type.equals(TableObject.TABLE)) {
+      SimpleStringTable addedTable = schema.getTable(addItem.getValue()).get();
       addedTable.addColumnListener(new ColumnsChangeListener(addItem));
 
       //原則として、itemの値はaddedTableのNameを見て決めるが、
@@ -100,7 +101,7 @@ public class TableManager {
       addItem.valueProperty().addListener(new ChangeListener<String>() {
         @Override
         public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-          if(!addedTable.getName().equals(newValue)) {
+          if (!addedTable.getName().equals(newValue)) {
             addedTable.setName(newValue);
           }
         }
@@ -123,17 +124,14 @@ public class TableManager {
         addTableObject(item, new TreeItem<String>(), change.getElementAdded().get(), childType);
       }
 
-      if(change.wasRemoved()) {
-        TreeItem<String> removeItem = null;
-        for(TreeItem<String> item : item.getChildren()) {
-          if(item.getValue().equals(change.getElementRemoved().get())) {
-            removeItem = item;
-            break;
-          }
-        }
-
-        item.getChildren().remove(removeItem);
-        objectMap.remove(removeItem);
+      if (change.wasRemoved()) {
+        item.getChildren().stream()
+            .filter(child -> child.getValue().equals(change.getElementRemoved().get()))
+            .findFirst()
+            .ifPresent(child -> {
+              item.getChildren().remove(child);
+              objectMap.remove(child);
+            });
       }
     }
   }
@@ -148,7 +146,7 @@ public class TableManager {
 
     @Override
     public void onChanged(SetChangeListener.Change<? extends Column> change) {
-      if(change.wasAdded()) {
+      if (change.wasAdded()) {
         Column addedColumn = change.getElementAdded();
         TreeItem<String> columnItem = new TreeItem<String>();
         addTableObject(item, columnItem, addedColumn.getName(), childType);
@@ -156,22 +154,21 @@ public class TableManager {
         //ColumnにTreeItemの名前を変えるリスナーを設定
         //ColumnからTreeItemへの変化は無条件で起こす。
         addedColumn.nameProperty().addListener(
-          new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-              columnItem.setValue(newValue);
+            new ChangeListener<String>() {
+              @Override
+              public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                columnItem.setValue(newValue);
+              }
             }
-          }
-        );
+            );
 
         //TreeItemにColumnの名前を変えるリスナーを設定。
         //ただしTreeItemからColumnへの変化は二つが異なっている時のみ
         ChangeListener<? super String> listener;
-        listener = new ChangeListener<String> () {
+        listener = new ChangeListener<String>() {
           @Override
           public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-            if(!addedColumn.getName().equals(newValue)) {
-              System.out.println("valueが変更されました");
+            if (!addedColumn.getName().equals(newValue)) {
               addedColumn.setName(newValue);
             }
           }
@@ -179,10 +176,10 @@ public class TableManager {
         columnItem.valueProperty().addListener(listener);
       }
 
-      if(change.wasRemoved()) {
+      if (change.wasRemoved()) {
         TreeItem<String> removeItem = null;
-        for(TreeItem<String> item : item.getChildren()) {
-          if(item.getValue().equals(change.getElementRemoved().getName())) {
+        for (TreeItem<String> item : item.getChildren()) {
+          if (item.getValue().equals(change.getElementRemoved().getName())) {
             removeItem = item;
             break;
           }
@@ -196,7 +193,6 @@ public class TableManager {
   ContextMenu createContextMenu(TreeItem<String> item) {
     ContextMenu menu = new ContextMenu();
 
-
     MenuItem addTable = new MenuItem("新しい表を追加");
     addTable.setOnAction((ActionEvent e) -> {
       schema.addTable("new Table" + TableObject.count);
@@ -206,20 +202,21 @@ public class TableManager {
 
     MenuItem addColumn = new MenuItem("新しい列を追加");
 
-
     MenuItem removeTable = new MenuItem("この表を削除");
     removeTable.setOnAction((ActionEvent e) -> {
       schema.removeTable(item.getValue());
     });
 
-
     MenuItem removeColumn = new MenuItem("この列を削除");
     removeColumn.setOnAction((ActionEvent e) -> {
-      schema.getTable(item.getParent().getValue()).removeColumn(item.getValue());
+      schema.getTable(item.getParent().getValue())
+          .ifPresent(element -> {
+            element.removeColumn(item.getValue());
+          });
     });
 
     switch (objectMap.get(item)) {
-    case ROOT :
+    case ROOT:
       menu.getItems().add(addTable);
       break;
 
@@ -228,7 +225,10 @@ public class TableManager {
       menu.getItems().add(removeTable);
       menu.getItems().add(addColumn);
       addColumn.setOnAction((ActionEvent e) -> {
-        schema.getTable(item.getValue()).addColumn("new Column" + TableObject.count);
+        schema.getTable(item.getValue())
+            .ifPresent(element -> {
+              element.addColumn("new Column" + TableObject.count);
+            });
         TableObject.count++;
         return;
       });
@@ -237,7 +237,10 @@ public class TableManager {
     case COLUMN:
       menu.getItems().add(addColumn);
       addColumn.setOnAction((ActionEvent e) -> {
-        schema.getTable(item.getParent().getValue()).addColumn("new Column" + TableObject.count);
+        schema.getTable(item.getParent().getValue())
+            .ifPresent(element -> {
+              element.addColumn("new Column" + TableObject.count);
+            });
         TableObject.count++;
         return;
       });
@@ -248,6 +251,5 @@ public class TableManager {
     }
     return menu;
   }
-
 
 }
