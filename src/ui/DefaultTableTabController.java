@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import table.Column;
 import table.SimpleStringTable;
 import ui.DefaultRow;
 import javafx.collections.FXCollections;
@@ -75,7 +76,6 @@ public class DefaultTableTabController implements Initializable {
         }
       }
     };
-
     table.getColumns().addListener(listener);
 
     //ボタンの設定
@@ -93,10 +93,11 @@ public class DefaultTableTabController implements Initializable {
     del.setOnAction(handler);
   }
 
-  public void addColumn(String columnName) {
+  public void addColumn(Column column) {
+    String columnName = column.getName();
     TableColumn<DefaultRow, String> addColumn = new TableColumn<DefaultRow, String>();
     addColumn.setEditable(true);
-    addColumn.setText(columnName);
+    addColumn.textProperty().bind(column.nameProperty());
     addColumn.setId(columnName);
     addColumn.setCellFactory(TextFieldTableCell.forTableColumn());
     addColumn.setCellValueFactory(
@@ -110,54 +111,47 @@ public class DefaultTableTabController implements Initializable {
     table.getColumns().add(addColumn);
   }
 
-  public <T> SetChangeListener<T> getAddColumnListener() {
-    SetChangeListener<T> listener = new SetChangeListener<T>() {
+  public void setTableModel(SimpleStringTable model) {
+    this.modelTable = model;
+
+    modelTable.addColumnListener(new SetChangeListener<Column>() {
       @Override
-      public void onChanged(SetChangeListener.Change<? extends T> change) {
-        if(change.wasAdded()) {
-          String columnName = change.getElementAdded().toString();
-          addColumn(columnName);
-          for(DefaultRow row : table.getItems()) {
+      public void onChanged(SetChangeListener.Change<? extends Column> change) {
+        if (change.wasAdded()) {
+          String columnName = change.getElementAdded().getName();
+          addColumn(change.getElementAdded());
+          for (DefaultRow row : table.getItems()) {
             row.getValueMap().put(columnName, new SimpleStringProperty("new value"));
           }
         }
 
-        if(change.wasRemoved()) {
-          String columnName = change.getElementRemoved().toString();
-          for(TableColumn<DefaultRow, ?> column : new ArrayList<>(table.getColumns())) {
-            if(null != column && column.getId() == columnName) {
+        if (change.wasRemoved()) {
+          String columnName = change.getElementRemoved().getName();
+          for (TableColumn<DefaultRow, ?> column : new ArrayList<>(table.getColumns())) {
+            if (null != column && column.getId() == columnName) {
               table.getColumns().remove(column);
             }
           }
 
-          for(DefaultRow row : table.getItems()) {
+          for (DefaultRow row : table.getItems()) {
             row.getValueMap().remove(columnName);
           }
 
         }
       }
-    };
-
-    return listener;
-  }
-
-  public void setTableModel(SimpleStringTable model) {
-    this.modelTable = model;
-
-    SetChangeListener<String> listener = this.<String>getAddColumnListener();
-    modelTable.addColumnListener(listener);
+    });
 
     modelTable.addRecordsListener(
-        new ListChangeListener<Map<String, String>>() {
+        new ListChangeListener<Map<Column, String>>() {
           @Override
-          public void onChanged(ListChangeListener.Change<? extends Map<String, String>> change) {
+          public void onChanged(ListChangeListener.Change<? extends Map<Column, String>> change) {
             while (change.next()) {
-              for (Map<String, String> record : change.getAddedSubList()) {
+              for (Map<Column, String> record : change.getAddedSubList()) {
                 //rowに入れるデータの組立て
                 Map<String, StringProperty> rowData = new HashMap<>();
-                for (String column : modelTable.getColumns()) {
+                for (Column column : record.keySet()) {
                   StringProperty value = new SimpleStringProperty(record.get(column));
-                  rowData.put(column, value);
+                  rowData.put(column.getName(), value);
                 }
 
                 //row自身の組立て

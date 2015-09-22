@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -16,8 +17,8 @@ import javafx.util.Builder;
 
 public class SimpleStringTable implements Builder<SimpleStringTable> {
   private StringProperty  name;
-  private ObservableSet<String> columns;
-  private ObservableList<Map<String, String>> records;
+  private ObservableSet<Column> columns;
+  private ObservableList<Map<Column, String>> records;
 
   public SimpleStringTable() {
     this(null);
@@ -25,8 +26,8 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
 
   public SimpleStringTable(String name) {
     this.name = new SimpleStringProperty(name);
-    this.columns = FXCollections.<String>observableSet();
-    this.records = FXCollections.<Map<String, String>>observableArrayList();
+    this.columns = FXCollections.<Column>observableSet();
+    this.records = FXCollections.<Map<Column, String>>observableArrayList();
   }
 
   public String getName() {
@@ -41,37 +42,46 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
     return name;
   }
 
-  public void addColumnListener(SetChangeListener<? super String> listener) {
+  public void addColumnListener(SetChangeListener<? super Column> listener) {
     columns.addListener(listener);
    }
 
-  public void removeColumnListener(SetChangeListener<? super String> listener) {
+  public void removeColumnListener(SetChangeListener<? super Column> listener) {
     columns.removeListener(listener);
    }
 
-  public void addRecordsListener(ListChangeListener<? super Map<String, String>> listener) {
+  public void addRecordsListener(ListChangeListener<? super Map<Column, String>> listener) {
     records.addListener(listener);
    }
 
-  public void removeRecordsListener(ListChangeListener<? super Map<String, String>> listener) {
+  public void removeRecordsListener(ListChangeListener<? super Map<Column, String>> listener) {
     records.removeListener(listener);
    }
 
 
 
   public void addColumn(String column) {
-    columns.add(column);
+    columns.add(new Column(this, column));
   }
 
   public List<String> getColumns() {
-    return new ArrayList<String>(columns);
+    List<String> result;
+    result = this.columns.stream()
+      .map(column -> column.getName())
+      .collect(Collectors.toList());
+
+    return result;
   }
 
-  public void removeColumn(String column) {
-    columns.remove(column);
+  public void removeColumn(String name) {
+    columns.remove(
+        columns.stream()
+          .filter(column -> column.getName().equals(name))
+          .collect(Collectors.toSet())
+    );
   }
 
-  public void addRecord(Map<String, String> record) {
+  public void addRecord(Map<Column, String> record) {
     records.add(record);
   }
 
@@ -80,27 +90,26 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
   }
 
   public void removeAllRecords() {
-    records = FXCollections.<Map<String, String>>observableArrayList();
+    records.removeAll(records);
   }
 
 
-  public Map<String, String> getTemplateRecord() {
-    Map<String, String> record = new HashMap<String, String>();
-    for(String column : columns) {
+  public Map<Column, String> getTemplateRecord() {
+    Map<Column, String> record = new HashMap<Column, String>();
+    for(Column column : columns) {
       record.put(column, null);
     }
 
     return record;
   }
 
-  public List<Map<String, String>> getAllRecords() {
-    return new ArrayList<Map<String, String>>(records);
+  public List<Map<Column, String>> getAllRecords() {
+    return new ArrayList<Map<Column, String>>(records);
   }
 
-  public Map<String, String> getRecord(int i) {
+  public Map<Column, String> getRecord(int i) {
     return records.get(i);
   }
-
 
   @Override
   public SimpleStringTable build() {

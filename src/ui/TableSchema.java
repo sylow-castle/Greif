@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -30,11 +31,13 @@ import javafx.scene.control.TabPane;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 import java.io.IOException;
 
 import runner.TextFileWriter;
+import table.Column;
 import table.SimpleStringTable;
 import database.DbFileLoader;
 
@@ -47,7 +50,7 @@ public class TableSchema {
 
   //頂点、辺等のテーブル名をキー
   //テーブルが持つ属性の名前一覧を値としたMap。
-  private final ObservableSet<String> tableNames;
+  private final ObservableSet<StringProperty> tableNames;
   private final ObservableSet<SimpleStringTable> tables;
   private final Map<String, SimpleStringTable> tableMap;
   private final Map<String, TableView<DefaultRow>> tableViews;
@@ -68,7 +71,7 @@ public class TableSchema {
     this.filePath = filePath;
     this.schemaView = new TabPane();
 
-    this.tableNames = FXCollections.<String> observableSet();
+    this.tableNames = FXCollections.<StringProperty> observableSet();
     this.tables = FXCollections.<SimpleStringTable> observableSet();
     this.tableMap = new HashMap<String, SimpleStringTable>();
 
@@ -84,7 +87,7 @@ public class TableSchema {
           SimpleStringTable table = change.getElementAdded();
           //tableNames、tableMapとの整合性を取る
           tableMap.put(table.getName(), table);
-          tableNames.add(table.getName());
+          tableNames.add(new SimpleStringProperty(table.getName()));
           tableViews.put(table.getName(), buildTableView(table.getName(), table));
         }
 
@@ -121,7 +124,8 @@ public class TableSchema {
         this.addTable(tableName);
       }
 
-      for (String tableName : this.tableNames) {
+      for (StringProperty tableNameProp : this.tableNames) {
+        String tableName = tableNameProp.get();
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
         loadTableData(tableMap.get(tableName), values);
       }
@@ -150,11 +154,11 @@ public class TableSchema {
     }
   }
 
-  public void addTablesListener(SetChangeListener<? super String> listener) {
+  public void addTablesListener(SetChangeListener<? super StringProperty> listener) {
     tableNames.addListener(listener);
   }
 
-  public void removeTablesListener(SetChangeListener<? super String> listener) {
+  public void removeTablesListener(SetChangeListener<? super StringProperty> listener) {
     tableNames.removeListener(listener);
   }
 
@@ -174,11 +178,11 @@ public class TableSchema {
 
       //行の設定
       while (tableData.next()) {
-        Map<String, String> record = new HashMap<String, String>();
+        Map<Column, String> record = table.getTemplateRecord();
 
         //行の値の組立て
-        for (String columnName : table.getColumns()) {
-          record.put(columnName, tableData.getString(columnName));
+        for (Column column: record.keySet()) {
+          record.put(column, tableData.getString(column.getName()));
         }
 
         table.addRecord(record);
@@ -199,7 +203,7 @@ public class TableSchema {
 
       //タブの設定
       tab.setId(tableId);
-      tab.setText(tableId);
+      tab.textProperty().bind(table.NameProperty());
       tab.getContent().setId(tableId);
       schemaView.getTabs().add(tab);
 
@@ -285,6 +289,7 @@ public class TableSchema {
 
     //Dot言語の構成
     List<String> givenColumnName = new ArrayList<String>();
+
     givenColumnName.add(LABEL);
     givenColumnName.add(SHAPE);
     givenColumnName.add(COLOR);
@@ -326,29 +331,14 @@ public class TableSchema {
       Statement stmt = dbFile.createStatement();
       stmt.addBatch("begin;");
 
-      //テーブルの作成
-      Map<String, SimpleStringTable> tables = new HashMap<String, SimpleStringTable>();
-      for (String tableName : this.tableNames) {
-        //テーブルの作成
-        @SuppressWarnings("unchecked")
-        TableView<DefaultRow> view = (TableView<DefaultRow>) this.schemaView.lookup("#" + tableName).lookup("#table");
-        SimpleStringTable table = this.tableMap.get(tableName);
-        table.removeAllRecords();
-        for (DefaultRow row : view.getItems()) {
-          table.addRecord(row.degenerateRow());
-        }
-
-        tables.put(tableName, table);
-      }
-
-      //create文の作成
-      for (String tableName : this.tableNames) {
+     //create文の作成
+      for (SimpleStringTable table : this.tables) {
         //create文作成
         String sql = "";
-        sql = "create table " + tableName + " ";
+        sql = "create table " + table.getName() + " ";
 
         List<String> columns = new ArrayList<String>();
-        for (String columName : tables.get(tableName).getColumns()) {
+        for (String columName : table.getColumns()) {
           columns.add(columName + " text");
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
@@ -356,14 +346,22 @@ public class TableSchema {
       }
 
       //insert文の作成
-      for (String tableName : this.tableNames) {
+      for (SimpleStringTable table : this.tables) {
         String sql = "";
 
-        SimpleStringTable table = tables.get(tableName);
         //テーブルのinsert文
-        for (Map<String, String> record : table.getAllRecords()) {
+        List<Map<String, String>> records = new ArrayList<>();
+        for (Map<Column, String> record : table.getAllRecords()) {
+          Map<String, String> row = new HashMap<>();
+          for(Column column : record.keySet()) {
+            row.put(column.getName(), record.get(column));
+          }
+          records.add(row);
+        }
+
+        for (Map<String, String> record : records) {
           List<String> columns = table.getColumns();
-          sql = "insert into " + tableName + " ";
+          sql = "insert into " + table.getName() + " ";
           sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ") ";
 
           //代入用の値の文字列化

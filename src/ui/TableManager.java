@@ -2,13 +2,16 @@ package ui;
 import java.util.HashMap;
 import java.util.Map;
 
+import table.Column;
 import table.SimpleStringTable;
 import ui.TableSchema.TableObject;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -30,6 +33,7 @@ public class TableManager {
   public TableManager(TableSchema schema) {
     this.schema = schema;
     this.view = new TreeView<String>();
+    this.view.setEditable(true);
     this.objectMap = new HashMap<>();
 
     view.setCellFactory(new Callback<TreeView<String>, TreeCell<String>>() {
@@ -37,18 +41,28 @@ public class TableManager {
       public TreeCell<String> call(TreeView<String> param) {
         TreeCell<String> returnCell;
         returnCell = TextFieldTreeCell.forTreeView().call(param);
+        returnCell.setEditable(true);
 
-        ObjectProperty<ContextMenu> contextMenuProp = returnCell.contextMenuProperty();
         ChangeListener<? super TreeItem<String>> listener = new ChangeListener<TreeItem<String>>() {
           @Override
           public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
               TreeItem<String> newValue) {
               if(null != newValue){
-                contextMenuProp.set(createContextMenu(newValue));
+                returnCell.setContextMenu(createContextMenu(newValue));
+
+                MenuItem edit = new MenuItem("名前を変更");
+                edit.setOnAction(new EventHandler<ActionEvent>() {
+                  @Override
+                  public void handle(ActionEvent arg0) {
+                    param.edit(newValue);
+                  }
+                });
+                returnCell.getContextMenu().getItems().add(edit);
               }
           }
         };
-        returnCell.treeItemProperty().addListener(listener );
+
+        returnCell.treeItemProperty().addListener(listener);
         return returnCell;
       }
     });
@@ -60,42 +74,59 @@ public class TableManager {
     this.objectMap.put(rootItem, TableObject.ROOT);
 
     //テーブル追加・削除時の動作設
-    schema.addTablesListener(new ObjectTreeChangeListener(rootItem, TableObject.TABLE));
+    schema.addTablesListener(new TableChangeListener(rootItem, TableObject.TABLE));
   }
 
 
-  void addTableObject(TreeItem<String> parent, String element, TableObject type) {
-    TreeItem<String> addItem;
-    addItem = new TreeItem<String>(element);
+  void addTableObject(TreeItem<String> parent, TreeItem<String> addItem, String element, TableObject type) {
     addItem.setExpanded(true);
+    addItem.setValue(element);
     parent.getChildren().add(addItem);
     objectMap.put(addItem, type);
 
     if(type.equals(TableObject.TABLE)) {
       SimpleStringTable addedTable = schema.getTable(addItem.getValue());
-      addedTable.addColumnListener(new ObjectTreeChangeListener(addItem, TableObject.COLUMN));
+      addedTable.addColumnListener(new ColumnsChangeListener(addItem));
+
+      //原則として、itemの値はaddedTableのNameを見て決めるが、
+      //ユーザーにより変更された場合にaddedTableのNameを変更する。
+      addedTable.NameProperty().addListener(new ChangeListener<String>() {
+        @Override
+        public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+          addItem.setValue(newValue);
+        }
+      });
+
+      addItem.valueProperty().addListener(new ChangeListener<String>() {
+        @Override
+        public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+          if(!addedTable.getName().equals(newValue)) {
+            addedTable.setName(newValue);
+          }
+        }
+      });
     }
   }
 
-  private class ObjectTreeChangeListener implements SetChangeListener<String> {
+  private class TableChangeListener implements SetChangeListener<StringProperty> {
     private TreeItem<String> item;
     private TableObject childType;
 
-    ObjectTreeChangeListener(TreeItem<String> item, TableObject childType) {
+    TableChangeListener(TreeItem<String> item, TableObject childType) {
       this.item = item;
       this.childType = childType;
     }
 
     @Override
-    public void onChanged(SetChangeListener.Change<? extends String> change) {
+    public void onChanged(SetChangeListener.Change<? extends StringProperty> change) {
       if(change.wasAdded()) {
-        addTableObject(item, change.getElementAdded(), childType);
+        addTableObject(item, new TreeItem<String>(), change.getElementAdded().get(), childType);
       }
 
       if(change.wasRemoved()) {
         TreeItem<String> removeItem = null;
         for(TreeItem<String> item : item.getChildren()) {
-          if(item.getValue().equals(change.getElementRemoved())) {
+          if(item.getValue().equals(change.getElementRemoved().get())) {
             removeItem = item;
             break;
           }
@@ -107,8 +138,64 @@ public class TableManager {
     }
   }
 
+  private class ColumnsChangeListener implements SetChangeListener<Column> {
+    private TreeItem<String> item;
+    private TableObject childType = TableObject.COLUMN;
+
+    ColumnsChangeListener(TreeItem<String> item) {
+      this.item = item;
+    }
+
+    @Override
+    public void onChanged(SetChangeListener.Change<? extends Column> change) {
+      if(change.wasAdded()) {
+        Column addedColumn = change.getElementAdded();
+        TreeItem<String> columnItem = new TreeItem<String>();
+        addTableObject(item, columnItem, addedColumn.getName(), childType);
+
+        //ColumnにTreeItemの名前を変えるリスナーを設定
+        //ColumnからTreeItemへの変化は無条件で起こす。
+        addedColumn.nameProperty().addListener(
+          new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+              columnItem.setValue(newValue);
+            }
+          }
+        );
+
+        //TreeItemにColumnの名前を変えるリスナーを設定。
+        //ただしTreeItemからColumnへの変化は二つが異なっている時のみ
+        ChangeListener<? super String> listener;
+        listener = new ChangeListener<String> () {
+          @Override
+          public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+            if(!addedColumn.getName().equals(newValue)) {
+              System.out.println("valueが変更されました");
+              addedColumn.setName(newValue);
+            }
+          }
+        };
+        columnItem.valueProperty().addListener(listener);
+      }
+
+      if(change.wasRemoved()) {
+        TreeItem<String> removeItem = null;
+        for(TreeItem<String> item : item.getChildren()) {
+          if(item.getValue().equals(change.getElementRemoved().getName())) {
+            removeItem = item;
+            break;
+          }
+        }
+        item.getChildren().remove(removeItem);
+        objectMap.remove(removeItem);
+      }
+    }
+  }
+
   ContextMenu createContextMenu(TreeItem<String> item) {
     ContextMenu menu = new ContextMenu();
+
 
     MenuItem addTable = new MenuItem("新しい表を追加");
     addTable.setOnAction((ActionEvent e) -> {
@@ -161,5 +248,6 @@ public class TableManager {
     }
     return menu;
   }
+
 
 }
