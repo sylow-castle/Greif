@@ -52,8 +52,6 @@ public class TableSchema {
   //テーブルが持つ属性の名前一覧を値としたMap。
   private final ObservableSet<StringProperty> tableNames;
   private final ObservableSet<SimpleStringTable> tables;
-  private final Map<String, SimpleStringTable> tableMap;
-  private final Map<String, TableView<DefaultRow>> tableViews;
   private SimpleStringTable vertexTable;
   private SimpleStringTable edgeTable;
 
@@ -66,9 +64,6 @@ public class TableSchema {
 
     this.tableNames = FXCollections.<StringProperty> observableSet();
     this.tables = FXCollections.<SimpleStringTable> observableSet();
-    this.tableMap = new HashMap<String, SimpleStringTable>();
-
-    this.tableViews = new HashMap<String, TableView<DefaultRow>>();
 
     //テーブル変更時の動作
     tables.addListener(new SetChangeListener<SimpleStringTable>() {
@@ -76,26 +71,21 @@ public class TableSchema {
       public void onChanged(SetChangeListener.Change<? extends SimpleStringTable> change) {
         if (change.wasAdded()) {
           SimpleStringTable table = change.getElementAdded();
-          //tableNames、tableMapとの整合性を取る
-          tableMap.put(table.getName(), table);
           tableNames.add(new SimpleStringProperty(table.getName()));
-          tableViews.put(table.getName(), buildTableView(table.getName(), table));
+          buildTableView(table.getName(), table);
         }
 
         if (change.wasRemoved()) {
           String name = change.getElementRemoved().getName();
-          Tab removeTab = null;
-          for(Tab tab : schemaView.getTabs()) {
-            if(null != tab.getId() && tab.getId().equals(name)){
-              removeTab = tab;
-              break;
-            }
-          }
-          schemaView.getTabs().remove(removeTab);
-          tableMap.remove(name);
+          List<Tab> removedTabs = schemaView.getTabs().stream()
+              .filter(tab -> null != tab.getId())
+              .filter(tab -> tab.getId().equals(name))
+              .collect(Collectors.toList());
+          schemaView.getTabs().remove(removedTabs);
+
           tableNames.stream()
-            .filter(nameProp -> nameProp.get().equals(name))
-            .forEach(nameProp -> tableNames.remove(nameProp));
+              .filter((StringProperty nameProp) -> nameProp.get().equals(name))
+              .forEach(nameProp -> tableNames.remove(nameProp));
         }
       }
     });
@@ -120,27 +110,24 @@ public class TableSchema {
       for (StringProperty tableNameProp : this.tableNames) {
         String tableName = tableNameProp.get();
         ResultSet values = dbFile.createStatement().executeQuery("select * from " + tableName);
-        loadTableData(tableMap.get(tableName), values);
+        this.getTable(tableName)
+            .ifPresent(table -> loadTableData(table, values));
       }
 
+      //TODO 仮実装
+      this.getTable("vertex")
+          .ifPresent(table -> vertexTable = table);
 
-      Set<String> names =
-          this.tableNames.stream()
-          .map(tbl -> tbl.get())
-          .collect(Collectors.toSet());
-      if(names.contains("vertex")) {
-        this.vertexTable = this.tableMap.get("vertex");
-      }
+      this.getTable("edge")
+          .ifPresent(table -> edgeTable = table);
 
-      if(names.contains("edge")) {
-        this.edgeTable = this.tableMap.get("edge");
-      }
       dbFile.close();
     } catch (SQLException e) {
       this.schemaView = null;
       e.printStackTrace();
     }
   }
+
   enum TableObject {
     ROOT,
     TABLE,
@@ -154,7 +141,7 @@ public class TableSchema {
   }
 
   public void removeTable(String name) {
-      this.tables.stream()
+    this.tables.stream()
         .filter(table -> table.getName().equals(name))
         .findFirst()
         .ifPresent(table -> this.tables.remove(table));
@@ -170,8 +157,8 @@ public class TableSchema {
 
   public Optional<SimpleStringTable> getTable(String tableName) {
     return this.tables.stream()
-      .filter(table -> table.getName().equals(tableName))
-      .findFirst();
+        .filter(table -> table.getName().equals(tableName))
+        .findFirst();
   }
 
   private void loadTableData(SimpleStringTable table, ResultSet tableData) {
@@ -189,7 +176,7 @@ public class TableSchema {
         Map<Column, String> record = table.getTemplateRecord();
 
         //行の値の組立て
-        for (Column column: record.keySet()) {
+        for (Column column : record.keySet()) {
           record.put(column, tableData.getString(column.getName()));
         }
 
@@ -288,7 +275,7 @@ public class TableSchema {
       Statement stmt = dbFile.createStatement();
       stmt.addBatch("begin;");
 
-     //create文の作成
+      //create文の作成
       for (SimpleStringTable table : this.tables) {
         //create文作成
         String sql = "";
@@ -300,8 +287,6 @@ public class TableSchema {
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
         stmt.addBatch(sql);
-        //TODO 削除
-        System.out.println(sql);
       }
 
       //insert文の作成
@@ -312,7 +297,7 @@ public class TableSchema {
         List<Map<String, String>> records = new ArrayList<>();
         for (Map<Column, String> record : table.getAllRecords()) {
           Map<String, String> row = new HashMap<>();
-          for(Column column : record.keySet()) {
+          for (Column column : record.keySet()) {
             row.put(column.getName(), record.get(column));
           }
           records.add(row);
@@ -335,8 +320,6 @@ public class TableSchema {
 
           sql = sql + "values (" + for_now.Utilities.serealizeString(values, ", ") + ");";
           stmt.addBatch(sql);
-          //TODO 削除
-          System.out.println(sql);
         }
       }
 
