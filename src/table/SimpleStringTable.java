@@ -84,10 +84,14 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
   }
 
   public void removeColumn(String columnName) {
+<<<<<<< HEAD
     this.columns.removeAll(columns.stream()
         .filter(column -> column.getName().equals(columnName))
         .collect(Collectors.toSet())
         );
+=======
+    this.columns.removeIf(column -> column.getName().equals(columnName));
+>>>>>>> ・カラム削除時にテーブルから削除されないバグの修正。
   }
 
   public void addRecord(Map<Column, String> record) {

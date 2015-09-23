@@ -136,11 +136,8 @@ public class DefaultTableTabController implements Initializable {
 
         if (change.wasRemoved()) {
           String columnName = change.getElementRemoved().getName();
-          for (TableColumn<DefaultRow, ?> column : new ArrayList<>(table.getColumns())) {
-            if (null != column && column.getId() == columnName) {
-              table.getColumns().remove(column);
-            }
-          }
+          //編集ボタンのカラムのために(notNullの条件がついてる
+          table.getColumns().removeIf(column -> (null != column.getId() && column.getId().equals(columnName)));
 
           for (DefaultRow row : table.getItems()) {
             row.getValueMap().remove(columnName);

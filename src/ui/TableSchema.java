@@ -83,9 +83,7 @@ public class TableSchema {
               .collect(Collectors.toList());
           schemaView.getTabs().remove(removedTabs);
 
-          tableNames.stream()
-              .filter((StringProperty nameProp) -> nameProp.get().equals(name))
-              .forEach(nameProp -> tableNames.remove(nameProp));
+          tableNames.removeIf((StringProperty nameProp) -> nameProp.get().equals(name));
         }
       }
     });
