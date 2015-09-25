@@ -25,10 +25,6 @@ public class Main extends Application {
      * @param args
      */
   public static void main(String[] args) {
-    /*
-    Tester.test_loadTextFile();
-    Tester.test_CreateGraph_2();
-    */
     loadConfigPropeties();
     launch(args);
   }

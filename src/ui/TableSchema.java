@@ -222,11 +222,11 @@ public class TableSchema {
   }
 
   public List<Map<Column, String>> getVerticesAsList() {
-    return this.vertexTable.getAllRecords();
+    return this.vertexTable.getAllRecordsAsList();
   }
 
-  public List<Map<Column, String>> getEdgesAsList() {
-    return this.edgeTable.getAllRecords();
+  public List<Map<Column, String>> getEdgesAsListAsList() {
+    return this.edgeTable.getAllRecordsAsList();
   }
 
   public void export() {
@@ -251,7 +251,7 @@ public class TableSchema {
 
     //辺の追加
     Set<EdgeCoder> ECoder = new HashSet<EdgeCoder>();
-    for (Map<Column, String> edge : this.getEdgesAsList()) {
+    for (Map<Column, String> edge : this.getEdgesAsListAsList()) {
       String startId = edge.get(this.edgeTable.getColumn("start"));
       String endId = edge.get(this.edgeTable.getColumn("end"));
       if (startId != null && endId != null) {
@@ -286,6 +286,8 @@ public class TableSchema {
           columns.add(columName + " text");
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
+        //TODO 削除
+        System.out.println(sql);
         stmt.addBatch(sql);
       }
 
@@ -295,7 +297,7 @@ public class TableSchema {
 
         //テーブルのinsert文
         List<Map<String, String>> records = new ArrayList<>();
-        for (Map<Column, String> record : table.getAllRecords()) {
+        for (Map<Column, String> record : table.getAllRecordsAsList()) {
           Map<String, String> row = new HashMap<>();
           for (Column column : record.keySet()) {
             row.put(column.getName(), record.get(column));
@@ -319,6 +321,8 @@ public class TableSchema {
           }
 
           sql = sql + "values (" + for_now.Utilities.serealizeString(values, ", ") + ");";
+          //TODO 削除
+          System.out.println(sql);
           stmt.addBatch(sql);
         }
       }
