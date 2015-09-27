@@ -175,10 +175,6 @@ public class DefaultTableTabController implements Initializable {
             for(Map<Column, String> record : change.getRemoved()) {
               table.getItems().stream()
                 .filter(row -> index.get(row).equals(record))
-                .map(row -> {
-                  System.out.println("+");
-                  return row;
-                })
                 .findFirst()
                 .ifPresent(row -> list.remove(row));
             }

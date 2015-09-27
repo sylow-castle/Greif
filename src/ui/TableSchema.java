@@ -81,7 +81,7 @@ public class TableSchema {
               .filter(tab -> null != tab.getId())
               .filter(tab -> tab.getId().equals(name))
               .collect(Collectors.toList());
-          schemaView.getTabs().remove(removedTabs);
+          schemaView.getTabs().removeAll(removedTabs);
 
           tableNames.removeIf((StringProperty nameProp) -> nameProp.get().equals(name));
         }
