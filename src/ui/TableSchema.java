@@ -187,7 +187,7 @@ public class TableSchema {
     }
   }
 
-  private TableView<DefaultRow> buildTableView(String tableId, SimpleStringTable table) {
+  private TableView<?> buildTableView(String tableId, SimpleStringTable table) {
     //シーングラフへのTab追加
     try {
       URL url = ui.view.fxmlRoot.class.getResource("DefaultTableTab.fxml");
@@ -200,8 +200,7 @@ public class TableSchema {
       tab.getContent().setId(tableId);
       schemaView.getTabs().add(tab);
 
-      @SuppressWarnings("unchecked")
-      TableView<DefaultRow> view = (TableView<DefaultRow>) tab.getContent().lookup("#table");
+      TableView<?> view = (TableView<?>) tab.getContent().lookup("#table");
       DefaultTableTabController controller = loader.<DefaultTableTabController> getController();
 
       //テーブルの元データを設定
@@ -244,6 +243,7 @@ public class TableSchema {
         String attrValue = vertex.get(this.vertexTable.getColumn(columnName));
         attrList.add(new SimpleAttribute(columnName, attrValue));
       }
+
       VCoder.add(new VertexCoder(id, attrList));
     }
 
@@ -254,7 +254,15 @@ public class TableSchema {
       String endId = edge.get(this.edgeTable.getColumn("end"));
       if (startId != null && endId != null) {
         baseGraph.addEdge(startId, endId);
-        ECoder.add(new EdgeCoder(startId, endId, true));
+
+        //辺の属性を付与
+        List<DotAttribute> attrList = new ArrayList<DotAttribute>();
+        for (String columnName : this.edgeTable.getColumns()) {
+          String attrValue = edge.get(this.edgeTable.getColumn(columnName));
+          attrList.add(new SimpleAttribute(columnName, attrValue));
+        }
+
+        ECoder.add(new EdgeCoder(startId, endId, true, attrList));
       }
     }
 

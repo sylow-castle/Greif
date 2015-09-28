@@ -38,7 +38,6 @@ public class DefaultTableTabController implements Initializable {
   @FXML
   public Button del;
 
-  @FXML
   public ObservableList<DefaultRow> list;
 
   @FXML
@@ -73,6 +72,7 @@ public class DefaultTableTabController implements Initializable {
       }
     });
 
+
     //Columnの追加・削除時の動作、
     ListChangeListener<TableColumn<DefaultRow, ?>> listener = new ListChangeListener<TableColumn<DefaultRow, ?>>() {
       @Override
@@ -80,6 +80,7 @@ public class DefaultTableTabController implements Initializable {
         for (TableColumn<DefaultRow, ?> column : e.getList()) {
           String columnName = column.getText();
           defaultValue.getValueMap().put(columnName, new SimpleStringProperty(columnName));
+
         }
       }
     };
@@ -93,15 +94,24 @@ public class DefaultTableTabController implements Initializable {
     addColumn.setEditable(true);
     addColumn.textProperty().bind(column.nameProperty());
     addColumn.setId(columnName);
-    addColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+    addColumn.setCellFactory(TextFieldTableCell.<DefaultRow> forTableColumn());
     addColumn.setCellValueFactory(
         new Callback<CellDataFeatures<DefaultRow, String>, ObservableValue<String>>() {
           @Override
           public ObservableValue<String> call(CellDataFeatures<DefaultRow, String> p) {
             return p.getValue().getValueMap().get(columnName);
           }
-        }
-        );
+        });
+
+    addColumn.setOnEditCommit(event -> {
+      //TODO Table側リスナーからの通知で値を変更するようにしたい
+      index.get(event.getRowValue()).put(column, event.getNewValue());
+      event.getRowValue().getValueMap().get(columnName).set(event.getNewValue());;
+
+      event.getRowValue().getValueMap().keySet().stream()
+      .forEach(key -> System.out.println(event.getRowValue().getValueMap().get(key).get()));
+    });
+
     table.getColumns().add(addColumn);
   }
 

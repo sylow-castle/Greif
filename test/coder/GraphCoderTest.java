@@ -17,8 +17,8 @@ public class GraphCoderTest {
     GraphCoder GCoder = new GraphCoder(null, null);
     List<String> expected = new ArrayList<String>();
     expected.add("digraph {");
-    expected.add("node [fontname=\"meiryo\"];");
-    expected.add("edge [fontname=\"meiryo\"];");
+    expected.add("node [fontname=\"null\"];");
+    expected.add("edge [fontname=\"null\"];");
     expected.add("}");
 
     List<String> actual = GCoder.writeDot();
@@ -57,8 +57,8 @@ public class GraphCoderTest {
     GraphCoder GCoder = new GraphCoder(vertices, edges);
     List<String> expected = new ArrayList<String>();
     expected.add("digraph {");
-    expected.add("node [fontname=\"meiryo\"];");
-    expected.add("edge [fontname=\"meiryo\"];");
+    expected.add("node [fontname=\"null\"];");
+    expected.add("edge [fontname=\"null\"];");
     expected.add(vState);
     expected.add(eState);
     expected.add("}");

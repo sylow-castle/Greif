@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -15,7 +16,7 @@ import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.util.Builder;
 
-public class SimpleStringTable implements Builder<SimpleStringTable> {
+public class SimpleStringTable {
   private StringProperty name;
   private ObservableSet<Column> columns;
   private ObservableList<Map<Column, String>> records;
@@ -119,10 +120,4 @@ public class SimpleStringTable implements Builder<SimpleStringTable> {
   public Map<Column, String> getRecord(int i) {
     return records.get(i);
   }
-
-  @Override
-  public SimpleStringTable build() {
-    return this;
-  }
-
 }
