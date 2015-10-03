@@ -221,9 +221,6 @@ public class TableManager {
       break;
 
     case TABLE:
-      menu.getItems().add(addTable);
-      menu.getItems().add(removeTable);
-      menu.getItems().add(addColumn);
       addColumn.setOnAction((ActionEvent e) -> {
         schema.getTable(item.getValue())
             .ifPresent(element -> {
@@ -232,10 +229,14 @@ public class TableManager {
         TableObject.count++;
         return;
       });
+
+      menu.getItems().add(addTable);
+      menu.getItems().add(removeTable);
+      menu.getItems().add(addColumn);
+
       break;
 
     case COLUMN:
-      menu.getItems().add(addColumn);
       addColumn.setOnAction((ActionEvent e) -> {
         schema.getTable(item.getParent().getValue())
             .ifPresent(element -> {
@@ -245,6 +246,7 @@ public class TableManager {
         return;
       });
 
+      menu.getItems().add(addColumn);
       menu.getItems().add(removeColumn);
 
       break;

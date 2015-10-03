@@ -43,6 +43,8 @@ public class WindowController implements Initializable {
   public Button Generate;
 
   @FXML
+  public Button NewGraph;
+  @FXML
   public Button SaveAsFile;
   @FXML
   public Button SaveFile;
@@ -66,6 +68,7 @@ public class WindowController implements Initializable {
   public ComboBox<Shape> ShapeList;
 
 
+
   public void initialize(URL url, ResourceBundle rb) {
     EventHandler<ActionEvent> handler;
     //メニュータブの設定
@@ -75,6 +78,12 @@ public class WindowController implements Initializable {
     SchemaList.setItems(FXCollections.<TableSchema>observableArrayList());
 
     //メニュータブの設定
+    //新しいグラフボタン
+    NewGraph.setOnAction((ActionEvent e) -> {
+      return;
+    });
+
+
     //ファイルを開くボタン
     EventHandler<ActionEvent> open =  (ActionEvent e ) -> {
       FileChooser chooser = new FileChooser();
