@@ -21,7 +21,7 @@
         <Button fx:id="add" text="新規"></Button>
         <Button fx:id="del" text="削除"></Button>
       </HBox>
-      <TableView fx:id="table">
+      <TableView fx:id="tableView">
       </TableView>
     </VBox>
   </content>
