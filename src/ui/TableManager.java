@@ -40,31 +40,24 @@ public class TableManager {
 
     view.setCellFactory(new Callback<TreeView<String>, TreeCell<String>>() {
       @Override
-      public TreeCell<String> call(TreeView<String> param) {
+      public TreeCell<String> call(TreeView<String> treeView) {
         TreeCell<String> returnCell;
-        returnCell = TextFieldTreeCell.forTreeView().call(param);
+        returnCell = TextFieldTreeCell.forTreeView().call(treeView);
         returnCell.setEditable(true);
-
-        ChangeListener<? super TreeItem<String>> listener = new ChangeListener<TreeItem<String>>() {
-          @Override
-          public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
-              TreeItem<String> newValue) {
-            if (null != newValue) {
-              returnCell.setContextMenu(createContextMenu(newValue));
-
-              MenuItem edit = new MenuItem("名前を変更");
-              edit.setOnAction(new EventHandler<ActionEvent>() {
-                @Override
-                public void handle(ActionEvent arg0) {
-                  param.edit(newValue);
-                }
-              });
-              returnCell.getContextMenu().getItems().add(edit);
-            }
+        returnCell.treeItemProperty().addListener((observable, oldValue, newValue) -> {
+          if (null == newValue) {
+            return;
           }
-        };
 
-        returnCell.treeItemProperty().addListener(listener);
+          returnCell.setContextMenu(createContextMenu(newValue));
+
+          MenuItem edit = new MenuItem("名前を変更");
+          edit.setOnAction((ActionEvent event) -> {
+              treeView.edit(newValue);
+          });
+
+          returnCell.getContextMenu().getItems().add(edit);
+        });
         return returnCell;
       }
     });
@@ -153,27 +146,17 @@ public class TableManager {
 
         //ColumnにTreeItemの名前を変えるリスナーを設定
         //ColumnからTreeItemへの変化は無条件で起こす。
-        addedColumn.nameProperty().addListener(
-            new ChangeListener<String>() {
-              @Override
-              public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                columnItem.setValue(newValue);
-              }
-            }
-            );
+        addedColumn.nameProperty().addListener((observable, oldValue, newValue) -> {
+          columnItem.setValue(newValue);
+        });
 
         //TreeItemにColumnの名前を変えるリスナーを設定。
         //ただしTreeItemからColumnへの変化は二つが異なっている時のみ
-        ChangeListener<? super String> listener;
-        listener = new ChangeListener<String>() {
-          @Override
-          public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-            if (!addedColumn.getName().equals(newValue)) {
-              addedColumn.setName(newValue);
-            }
+        columnItem.valueProperty().addListener((observable, oldValue, newValue) -> {
+          if (!addedColumn.getName().equals(newValue)) {
+            addedColumn.setName(newValue);
           }
-        };
-        columnItem.valueProperty().addListener(listener);
+        });
       }
 
       if (change.wasRemoved()) {

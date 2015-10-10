@@ -292,8 +292,6 @@ public class TableSchema {
           columns.add(columName + " text");
         }
         sql = sql + "(" + for_now.Utilities.serealizeString(columns, ", ") + ");";
-        //TODO 削除
-        System.out.println(sql);
         stmt.addBatch(sql);
       }
 
@@ -327,8 +325,6 @@ public class TableSchema {
           }
 
           sql = sql + "values (" + for_now.Utilities.serealizeString(values, ", ") + ");";
-          //TODO 削除
-          System.out.println(sql);
           stmt.addBatch(sql);
         }
       }

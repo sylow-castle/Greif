@@ -5,7 +5,7 @@ import javafx.beans.property.StringProperty;
 
 public class Column {
   private SimpleStringTable table;
-  private StringProperty name;
+  private final StringProperty name = new SimpleStringProperty();
 
   public Column(SimpleStringTable table) {
     this(table, null);
@@ -13,7 +13,7 @@ public class Column {
 
   public Column(SimpleStringTable table, String name) {
     this.table = table;
-    this.name = new SimpleStringProperty(name);
+    this.name.set(name);
   }
 
   public void setName(String name) {
