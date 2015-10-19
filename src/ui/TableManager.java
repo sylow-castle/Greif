@@ -2,18 +2,15 @@ package ui;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import table.Column;
 import table.SimpleStringTable;
-import ui.TableSchema.TableObject;
-import javafx.beans.property.ObjectProperty;
+import table.TableObjectType;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -26,7 +23,7 @@ import javafx.util.Callback;
 public class TableManager {
   private final TableSchema schema;
   private final TreeView<String> view;
-  private final Map<TreeItem<String>, TableObject> objectMap;
+  private final Map<TreeItem<String>, TableObjectType> objectMap;
 
   public Node getView() {
     return this.view;
@@ -66,19 +63,19 @@ public class TableManager {
     TreeItem<String> rootItem = new TreeItem<String>("Tables");
     rootItem.setExpanded(true);
     view.setRoot(rootItem);
-    this.objectMap.put(rootItem, TableObject.ROOT);
+    this.objectMap.put(rootItem, TableObjectType.ROOT);
 
     //テーブル追加・削除時の動作設
-    schema.addTablesListener(new TableChangeListener(rootItem, TableObject.TABLE));
+    schema.addTablesListener(new TableChangeListener(rootItem, TableObjectType.TABLE));
   }
 
-  void addTableObject(TreeItem<String> parent, TreeItem<String> addItem, String element, TableObject type) {
+  void addTableObject(TreeItem<String> parent, TreeItem<String> addItem, String element, TableObjectType type) {
     addItem.setExpanded(true);
     addItem.setValue(element);
     parent.getChildren().add(addItem);
     objectMap.put(addItem, type);
 
-    if (type.equals(TableObject.TABLE)) {
+    if (type.equals(TableObjectType.TABLE)) {
       SimpleStringTable addedTable = schema.getTable(addItem.getValue()).get();
       addedTable.addColumnListener(new ColumnsChangeListener(addItem));
 
@@ -104,9 +101,9 @@ public class TableManager {
 
   private class TableChangeListener implements SetChangeListener<StringProperty> {
     private TreeItem<String> item;
-    private TableObject childType;
+    private TableObjectType childType;
 
-    TableChangeListener(TreeItem<String> item, TableObject childType) {
+    TableChangeListener(TreeItem<String> item, TableObjectType childType) {
       this.item = item;
       this.childType = childType;
     }
@@ -131,7 +128,7 @@ public class TableManager {
 
   private class ColumnsChangeListener implements SetChangeListener<Column> {
     private TreeItem<String> item;
-    private TableObject childType = TableObject.COLUMN;
+    private TableObjectType childType = TableObjectType.COLUMN;
 
     ColumnsChangeListener(TreeItem<String> item) {
       this.item = item;
@@ -178,8 +175,8 @@ public class TableManager {
 
     MenuItem addTable = new MenuItem("新しい表を追加");
     addTable.setOnAction((ActionEvent e) -> {
-      schema.addTable("new Table" + TableObject.count);
-      TableObject.count++;
+      schema.addTable("new Table" + TableObjectType.count);
+      TableObjectType.count++;
       return;
     });
 
@@ -207,9 +204,9 @@ public class TableManager {
       addColumn.setOnAction((ActionEvent e) -> {
         schema.getTable(item.getValue())
             .ifPresent(element -> {
-              element.addColumn("new Column" + TableObject.count);
+              element.addColumn("new Column" + TableObjectType.count);
             });
-        TableObject.count++;
+        TableObjectType.count++;
         return;
       });
 
@@ -223,9 +220,9 @@ public class TableManager {
       addColumn.setOnAction((ActionEvent e) -> {
         schema.getTable(item.getParent().getValue())
             .ifPresent(element -> {
-              element.addColumn("new Column" + TableObject.count);
+              element.addColumn("new Column" + TableObjectType.count);
             });
-        TableObject.count++;
+        TableObjectType.count++;
         return;
       });
 

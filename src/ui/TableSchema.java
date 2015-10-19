@@ -1,5 +1,6 @@
 package ui;
 
+import graph.Edge;
 import graph.IdentifiedGraph;
 
 import java.net.URL;
@@ -44,16 +45,20 @@ import database.DbFileLoader;
 public class TableSchema {
   //フルパス
   private String filePath;
+  private IdentifiedGraph<String> baseGraph;
 
   //対応するタブ
   private TabPane schemaView;
 
-  //頂点、辺等のテーブル名をキー
+  //外部から見え、のはtableNames
+
   //テーブルが持つ属性の名前一覧を値としたMap。
   private final ObservableSet<StringProperty> tableNames;
   private final ObservableSet<SimpleStringTable> tables;
+
   private SimpleStringTable vertexTable;
   private SimpleStringTable edgeTable;
+
 
   //定数
   private static final String DOT_WRITE_PATH = runner.Main.prop.getProperty("DOTFilePath");
@@ -66,25 +71,22 @@ public class TableSchema {
     this.tables = FXCollections.<SimpleStringTable> observableSet();
 
     //テーブル変更時の動作
-    tables.addListener(new SetChangeListener<SimpleStringTable>() {
-      @Override
-      public void onChanged(SetChangeListener.Change<? extends SimpleStringTable> change) {
-        if (change.wasAdded()) {
-          SimpleStringTable table = change.getElementAdded();
-          tableNames.add(new SimpleStringProperty(table.getName()));
-          buildTableView(table.getName(), table);
-        }
+    tables.addListener((SetChangeListener.Change<? extends SimpleStringTable> change) -> {
+      if (change.wasAdded()) {
+        SimpleStringTable table = change.getElementAdded();
+        tableNames.add(new SimpleStringProperty(table.getName()));
+        buildTableView(table.getName(), table);
+      }
 
-        if (change.wasRemoved()) {
-          String name = change.getElementRemoved().getName();
-          List<Tab> removedTabs = schemaView.getTabs().stream()
-              .filter(tab -> null != tab.getId())
-              .filter(tab -> tab.getId().equals(name))
-              .collect(Collectors.toList());
-          schemaView.getTabs().removeAll(removedTabs);
+      if (change.wasRemoved()) {
+        String name = change.getElementRemoved().getName();
+        List<Tab> removedTabs = schemaView.getTabs().stream()
+            .filter(tab -> null != tab.getId())
+            .filter(tab -> tab.getId().equals(name))
+            .collect(Collectors.toList());
+        schemaView.getTabs().removeAll(removedTabs);
 
-          tableNames.removeIf((StringProperty nameProp) -> nameProp.get().equals(name));
-        }
+        tableNames.removeIf((StringProperty nameProp) -> nameProp.get().equals(name));
       }
     });
 
@@ -124,14 +126,6 @@ public class TableSchema {
       this.schemaView = null;
       e.printStackTrace();
     }
-  }
-
-  enum TableObject {
-    ROOT,
-    TABLE,
-    COLUMN;
-
-    public static int count = 0;
   }
 
   public void addTable(String name) {
@@ -226,44 +220,57 @@ public class TableSchema {
     return this.edgeTable.getAllRecordsAsList();
   }
 
+
   public void export() {
-    IdentifiedGraph<String> baseGraph;
-    baseGraph = new IdentifiedGraph<String>();
+    //グラフの設定
+    IdentifiedGraph<String> baseGraph = new IdentifiedGraph<String>();
 
-    //グラフを設定
-    //頂点の追加
-    Set<VertexCoder> VCoder = new HashSet<VertexCoder>();
-    for (Map<Column, String> vertex : this.getVerticesAsList()) {
-      String id = vertex.get(this.vertexTable.getColumn("id"));
+    //頂点の追加、属性の設定
+    Map<String, Map<Column, String>> vertexValue = new HashMap<>();
+    for(Map<Column, String> vertexRecord : this.getVerticesAsList()) {
+      String id = vertexRecord.get(this.vertexTable.getColumn("id"));
+      if(null == id) {
+        continue;
+      }
       baseGraph.addVertex(id);
+      vertexValue.put(id, vertexRecord);
+    }
 
-      //頂点に属性を付与
-      List<DotAttribute> attrList = new ArrayList<DotAttribute>();
-      for (String columnName : this.vertexTable.getColumns()) {
-        String attrValue = vertex.get(this.vertexTable.getColumn(columnName));
-        attrList.add(new SimpleAttribute(columnName, attrValue));
+    //辺の追加,属性の設定
+    Map<Edge, Map<Column, String>> edgeValue = new HashMap<>();
+    for(Map<Column, String> edgeRecord : this.getEdgesAsListAsList()) {
+      String start, end;
+      start = edgeRecord.get(this.edgeTable.getColumn("start"));
+      end   = edgeRecord.get(this.edgeTable.getColumn("end"));
+      if(null == edgeRecord.get(start) || null == edgeRecord.get(end)) {
+        continue;
       }
 
+      Edge edge = baseGraph.addEdge(start, end);
+      edgeValue.put(edge, edgeRecord);
+    }
+
+    //Coderの設定
+    Set<VertexCoder> VCoder = new HashSet<>();
+    for (String id : baseGraph.getAllVertexAsSet()) {
+      List<DotAttribute> attrList = new ArrayList<>();
+      for (Map.Entry<Column, String> entry : vertexValue.get(id).entrySet()) {
+        attrList.add(new SimpleAttribute(entry.getKey().getName(), entry.getValue()));
+      }
       VCoder.add(new VertexCoder(id, attrList));
     }
 
-    //辺の追加
-    Set<EdgeCoder> ECoder = new HashSet<EdgeCoder>();
-    for (Map<Column, String> edge : this.getEdgesAsListAsList()) {
-      String startId = edge.get(this.edgeTable.getColumn("start"));
-      String endId = edge.get(this.edgeTable.getColumn("end"));
-      if (startId != null && endId != null) {
-        baseGraph.addEdge(startId, endId);
-
-        //辺の属性を付与
-        List<DotAttribute> attrList = new ArrayList<DotAttribute>();
-        for (String columnName : this.edgeTable.getColumns()) {
-          String attrValue = edge.get(this.edgeTable.getColumn(columnName));
-          attrList.add(new SimpleAttribute(columnName, attrValue));
-        }
-
-        ECoder.add(new EdgeCoder(startId, endId, true, attrList));
+    Set<EdgeCoder> ECoder = new HashSet<>();
+    for (Edge edge : baseGraph.getAllEdgeAsSet()) {
+      List<DotAttribute> attrList = new ArrayList<>();
+      for (Map.Entry<Column, String> entry : edgeValue.get(edge).entrySet()) {
+        attrList.add(new SimpleAttribute(entry.getKey().getName(), entry.getValue()));
       }
+
+      String startId, endId;
+      startId = baseGraph.valueOf(edge.getStart());
+      endId = baseGraph.valueOf(edge.getEnd());
+      ECoder.add(new EdgeCoder(startId, endId, true, attrList));
     }
 
     GraphCoder GCoder = new GraphCoder(VCoder, ECoder);
